@@ -36,6 +36,7 @@
 ## 🔒 Limites connues (pas actionnables côté ai-core)
 
 - **Duplication des commandes par modèle** : aucun outil ne lit-à-travers une référence → **recopies forcées** (mais d'**UNE source** → sans drift). Symlinks non viables (Windows/git/assemblage multi-fichiers). On est « condamné » au moins-pire propre.
+- **Valeur de `.ai/commands/` (et de `--consolidate`) conditionnelle** : utile en **multi-LLM** (une source → N copies sans drift) **ou** pour l'**additif** (fragments = dossier obligatoire). En **mono-LLM + commande simple** → indirection pure ; autant garder `.claude/commands/` à la main. ai-core ne force pas. *(Le « réemploi » est à la génération, pas à la lecture.)*
 - **Pas d'oracle de design** : la méthode (délibération) est *injectée*, pas *garantie* — seul l'humain rate les décisions. L'oracle (tests/build) ne couvre que l'implémentation.
 - **Pointeur non uniforme** : la structure diffère selon le LLM (Claude tout en un / Copilot scopé) → un renvoi valide chez l'un est mort chez l'autre. Réponse : **auto-suffisance** (voir 🔜).
 
