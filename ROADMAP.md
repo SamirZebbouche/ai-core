@@ -45,6 +45,12 @@
 - [ ] Context-pointeurs : `.ai/contexts/lexique.md` (→ `docs/LEXIQUE.md`), `.ai/contexts/adr.md` (→ `docs/adr/`).
 - [ ] Règles projet (couplage back/front, design-system, testing) → `.ai/contexts/`.
 
-## ➕ Tes ajouts (à citer — je remplis au fil)
+## ➕ Tes ajouts (cités au fil)
 
-- …
+- [ ] **`--help <command>`** : afficher le rôle/description d'une commande (lit son `command.md`). *(DX)*
+- [ ] **`--config` en une étape** : qu'il **consolide** aussi les commandes natives et **active** celles
+  compatibles avec les **stacks détectées** (setup complet, pas juste `models` + `stacks`).
+- [ ] **Consolider les *stacks*** : étendre `--consolidate` aux **conventions de stack/context natives**
+  (`.github/instructions/*.instructions.md`) → source `.ai/contexts/`. C'est aussi le canal pour
+  *remonter la stack .NET riche* de cvGenerator. Aujourd'hui `--consolidate` ne prend que les commandes.
+- [x] ~~`/deliberate` = *skill de base* (method.md), pas une commande~~ — **fait**.
