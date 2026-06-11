@@ -82,7 +82,8 @@ Options
   --commands a,b   commandes à générer                           (défaut : toutes)
   --out DIR        dossier de sortie                             (défaut : racine du projet)
   --list           catalogue : modèles / stacks / commandes disponibles
-  --config         suggère le bloc "ai-core" pour package.json (stacks auto-détectées)
+  --detect-config  AFFICHE le bloc "ai-core" suggéré (lecture seule, stacks auto-détectées)
+  --config         ÉCRIT/met à jour "ai-core" dans package.json (ADDITIF : ajoute les stacks détectées, garde tes models)
   --help           cette aide
 
 Config (package.json)
@@ -97,16 +98,41 @@ Seul le bloc <!-- ai-core:start … end --> est réécrit ; ta zone libre est pr
   process.exit(0);
 }
 
-if (args.includes('--config')) {
+if (args.includes('--detect-config') || args.includes('--detectConfig') || args.includes('--detect')) {
   const detected = detectStacks();
-  console.log('Config ai-core — colle ce bloc dans package.json :\n');
+  console.log('Config ai-core suggérée (lecture seule — `--config` pour l\'écrire dans package.json) :\n');
   console.log('  "ai-core": {');
   console.log(`    "models": ${JSON.stringify(MODELS)},`);
   console.log(`    "stacks": ${JSON.stringify(detected)}`);
   console.log('  }\n');
   console.log(`Stacks ${detected.length ? 'auto-détectées : ' + detected.join(', ') : 'aucune détectée — ajoute les tiennes (npx ai-core-sync --list)'}.`);
   console.log('Modèles : anthropic, gemini, copilot — retire ceux que tu n\'utilises pas (alias claude=anthropic).');
-  console.log('Optionnel : "scripts": { "postinstall": "ai-core-sync" }   ·   Aide : npx ai-core-sync --help');
+  process.exit(0);
+}
+
+if (args.includes('--config')) {
+  const pkgPath = join(projectDir, 'package.json');
+  if (!existsSync(pkgPath)) { console.error('Pas de package.json à la racine — `npm init` d\'abord (ou `--detect-config` pour juste afficher).'); process.exit(1); }
+  let raw, pkg;
+  try { raw = read(pkgPath); pkg = JSON.parse(raw); } catch { console.error('package.json illisible / JSON invalide.'); process.exit(1); }
+  const detected = detectStacks();
+  const cfg = pkg['ai-core'];
+  let msg;
+  if (!cfg) {
+    pkg['ai-core'] = { models: MODELS, stacks: detected };
+    msg = `✅ Bloc "ai-core" créé — stacks: ${detected.join(', ') || '—'} · models: ${MODELS.join(', ')}.`;
+  } else {
+    // ADDITIF : ajoute les stacks détectées absentes ; PRÉSERVE models & co.
+    const cur = Array.isArray(cfg.stacks) ? cfg.stacks : [];
+    const added = detected.filter((s) => !cur.includes(s));
+    if (!added.length) { console.log(`Bloc "ai-core" déjà à jour (stacks: ${cur.join(', ') || '—'}). Rien à ajouter.`); process.exit(0); }
+    cfg.stacks = [...cur, ...added];
+    msg = `✅ Stacks ajoutées : ${added.join(', ')} (total: ${cfg.stacks.join(', ')}). models inchangés.`;
+  }
+  const indent = (raw.match(/\n([ \t]+)"/) || [null, '  '])[1];
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, indent) + (raw.endsWith('\n') ? '\n' : ''));
+  console.log(msg);
+  console.log('Puis : npx ai-core-sync');
   process.exit(0);
 }
 

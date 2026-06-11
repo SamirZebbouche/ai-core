@@ -156,13 +156,37 @@ test('catalogue : --list imprime les modèles et les commandes cœur', () => {
   clean(dir);
 });
 
-test('aide : --help imprime l\'usage ; --config suggère le bloc package.json', () => {
+test('aide : --help imprime l\'usage ; --detect-config affiche le bloc package.json', () => {
   const a = sync(['--help']);
   assert.match(a.out, /Usage/, '--help doit imprimer l\'usage');
-  const b = sync(['--config']);
-  assert.match(b.out, /"ai-core"/, '--config doit suggérer le bloc ai-core');
-  assert.match(b.out, /"stacks"/, '--config doit proposer des stacks');
+  const b = sync(['--detect-config']);
+  assert.match(b.out, /"ai-core"/, '--detect-config doit afficher le bloc ai-core');
+  assert.match(b.out, /"stacks"/, '--detect-config doit proposer des stacks');
   clean(a.dir); clean(b.dir);
+});
+
+test('--config crée le bloc, puis AJOUTE additivement les stacks détectées en préservant models', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  writeFileSync(join(dir, 'package.json'), JSON.stringify({ name: 'demo' }, null, 2) + '\n');
+  writeFileSync(join(dir, 'app.csproj'), '');
+  // 1) création
+  sync(['--config'], dir);
+  let pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+  assert.deepEqual(pkg['ai-core'].stacks, ['dotnet']);
+  // l'utilisateur restreint ses models
+  pkg['ai-core'].models = ['anthropic'];
+  writeFileSync(join(dir, 'package.json'), JSON.stringify(pkg, null, 2) + '\n');
+  // 2) un front react apparaît → --config AJOUTE react, PRÉSERVE models
+  mkdirSync(join(dir, 'src', 'front'), { recursive: true });
+  writeFileSync(join(dir, 'src', 'front', 'package.json'), JSON.stringify({ dependencies: { react: '^18' } }));
+  sync(['--config'], dir);
+  pkg = JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8'));
+  assert.deepEqual(pkg['ai-core'].stacks, ['dotnet', 'react'], 'react ajouté additivement');
+  assert.deepEqual(pkg['ai-core'].models, ['anthropic'], 'models de l\'utilisateur préservés');
+  // 3) rien de neuf → no-op
+  const r3 = sync(['--config'], dir);
+  assert.match(r3.out, /jour|rien/i, 'rien à ajouter si déjà à jour');
+  clean(dir);
 });
 
 test('défaut sain : sans config ni techno détectée → AUCUNE stack (pas "toutes")', () => {
@@ -184,7 +208,7 @@ test('détection monorepo : react dans src/<front>/package.json est détecté (b
   writeFileSync(join(dir, 'app.sln'), '');
   mkdirSync(join(dir, 'src', 'app-front'), { recursive: true });
   writeFileSync(join(dir, 'src', 'app-front', 'package.json'), JSON.stringify({ dependencies: { react: '^18' } }));
-  const { out } = sync(['--config'], dir);
+  const { out } = sync(['--detect-config'], dir);
   assert.match(out, /dotnet/, 'dotnet attendu (via .sln racine)');
   assert.match(out, /react/, 'react attendu (via src/app-front/package.json)');
   clean(dir);

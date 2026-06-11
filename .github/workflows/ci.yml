@@ -29,11 +29,11 @@ jobs:
       - name: Tests (runner intégré de Node, zéro dépendance)
         run: npm test
 
-      - name: Smoke — catalogue, aide, config
+      - name: Smoke — catalogue, aide, detect-config (lecture seule)
         run: |
           node tools/sync-ai.mjs --list
           node tools/sync-ai.mjs --help
-          node tools/sync-ai.mjs --config
+          node tools/sync-ai.mjs --detect-config
 
       - name: Smoke — génération sans crash (3 modèles)
         run: |
