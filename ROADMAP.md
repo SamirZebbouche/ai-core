@@ -25,7 +25,7 @@
 
 - [ ] **Stack `react`** (`conventions/stacks/react.md`) — aujourd'hui `react` est sélectionnable mais ne « fait » rien (pas de convention cœur).
 - [ ] **Remonter la stack .NET riche** de cvGenerator (procédure rich-vs-anemic, DI) dans `stacks/dotnet.md`.
-- [ ] **Skills généralistes du cœur** : aucun pour l'instant (la délibération est un *skill de base* dans `method.md`, pas une commande). En ajouter si vraiment project-agnostiques.
+- [ ] **Bibliothèque de skills *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en skills cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`) + fournit ses **paramètres**. **⚠️ Gaté par la paramétrisation** « projet en entrée » (cf. 💡) — sinon impossible de sortir les chemins en dur. *(Les commandes vraiment bespoke restent project-local opaques.)*
 
 ## 💡 Gros morceaux (plus tard)
 
@@ -37,16 +37,14 @@
 
 - **Duplication des commandes par modèle** : aucun outil ne lit-à-travers une référence → **recopies forcées** (mais d'**UNE source** → sans drift). Symlinks non viables (Windows/git/assemblage multi-fichiers). On est « condamné » au moins-pire propre.
 - **Valeur de `.ai/commands/` (et de `--consolidate`) conditionnelle** : utile en **multi-LLM** (une source → N copies sans drift) **ou** pour l'**additif** (fragments = dossier obligatoire). En **mono-LLM + commande simple** → indirection pure ; autant garder `.claude/commands/` à la main. ai-core ne force pas. *(Le « réemploi » est à la génération, pas à la lecture.)*
-- **Additif par techno (fragments `<stack>.md`) — DEUX usages distincts** :
-  1. **organisation modulaire** d'une commande **multi-techno** (chaque partie stack-spécifique a sa spécificité — ex. `/check` = `dotnet.md` avec le fix `BaseOutputPath` + `react.md` avec vitest). **Vaut AUSSI en project-local** (pas que le cœur). C'est un **découpage délibéré** que l'auteur fait.
-  2. **adaptation** d'une commande **généraliste** à des projets à stacks variées (concern du cœur).
-  → C'est **distinct de `--consolidate`** (qui importe **flat + opaque**, sans décomposer). Le moteur `{{stacks}}` **n'est pas dormant** : `/check` l'utilise. *(Correction d'une capture YAGNI trop hâtive.)*
+- **Project-local = OPAQUE** : ai-core **n'interfère JAMAIS avec le contenu** d'une commande projet. `--consolidate` la **déplace + redistribue verbatim** (pas de parsing, pas de décomposition, on se moque du contenu).
+- **Fragments `<stack>.md` (additif) = skills du CŒUR uniquement** : un skill **généraliste** (`commands/`) s'assemble depuis des fragments stack-spécifiques et **s'adapte aux stacks détectées** (ex. un `/check` *cœur* = `dotnet.md` + `react.md`). → Un `/check` fragmenté serait un **skill cœur** (futur, cf. paramétrisation « projet en entrée »), **jamais** du project-local.
 - **Pas d'oracle de design** : la méthode (délibération) est *injectée*, pas *garantie* — seul l'humain rate les décisions. L'oracle (tests/build) ne couvre que l'implémentation.
 - **Pointeur non uniforme** : la structure diffère selon le LLM (Claude tout en un / Copilot scopé) → un renvoi valide chez l'un est mort chez l'autre. Réponse : **auto-suffisance** (voir 🔜).
 
 ## 🎯 Adoption cvGenerator (le terrain réel)
 
-- [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` (flat) → **puis décomposer** `/check` & `/watch` en fragments `dotnet.md` / `react.md` (chacun sa spécificité).
+- [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` → commandes **opaques** (project-local, **zéro ingérence** : move + redistribue verbatim). *(Un `/check` fragmenté = futur skill cœur, pas ici.)*
 - [ ] Context-pointeurs : `.ai/contexts/lexique.md` (→ `docs/LEXIQUE.md`), `.ai/contexts/adr.md` (→ `docs/adr/`).
 - [ ] Règles projet (couplage back/front, design-system, testing) → `.ai/contexts/`.
 
