@@ -1,0 +1,3 @@
+# Le cœur partagé ship contexts/ VIDE : les contextes sont PROJECT-LOCAL (apportés par chaque projet de dev).
+conventions/contexts/*
+!conventions/contexts/README.md

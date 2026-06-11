@@ -1,0 +1,22 @@
+<!-- GÉNÉRÉ par tools/sync-ai — n'édite PAS ce fichier, édite conventions/ -->
+# CLAUDE.md
+
+Conventions partagées (cœur `ai-core`) + méthode de travail.
+Claude supporte `@import` → adapter MINCE (pointeurs, pas de copie).
+
+## Méthode (comment je travaille)
+@{AI_CORE}/conventions/method.md
+
+## Constitution & principes
+@{AI_CORE}/conventions/global.md
+@{AI_CORE}/conventions/meta/architecture-principles.md
+
+## Stacks (scoped)
+{FOR each stacks/*.md}@{AI_CORE}/conventions/stacks/{name}.md
+{END}
+
+## Contexts (PROJECT-LOCAL)
+{FOR each conventions/contexts/*.md}@conventions/contexts/{name}.md
+{END}
+
+<!-- sync-ai remplace {AI_CORE} par le chemin réel du submodule/package, et déplie les boucles -->
