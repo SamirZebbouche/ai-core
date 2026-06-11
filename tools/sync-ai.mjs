@@ -53,20 +53,32 @@ function writeManaged(path, body, title) {
 let _cfg;
 const projectCfg = () => { if (_cfg !== undefined) return _cfg; _cfg = {}; const pkg = join(projectDir, 'package.json'); if (existsSync(pkg)) { try { _cfg = JSON.parse(read(pkg))['ai-core'] || {}; } catch { /* */ } } return _cfg; };
 
+// Détection best-effort, AGNOSTIQUE du nommage et de la profondeur : UN passage RÉCURSIF PROFOND
+// (coût négligeable, 1× par run), patterns par techno. node_modules + dotdirs + dossiers "non-app"
+// (poc, examples…) sont exclus — sinon le scan profond ramasse les deps et les expérimentations.
+const NOISE = new Set([
+  // bruit de build / dépendances
+  'node_modules', 'dist', 'build', 'bin', 'obj', 'out', 'coverage', 'target', 'vendor', '__pycache__', 'venv', '.venv',
+  // dossiers "non-app" (expérimentation / annexes) — évite de prendre un poc/requirements.txt pour une stack
+  'poc', 'pocs', 'example', 'examples', 'sample', 'samples', 'demo', 'demos', 'docs', 'doc', 'sandbox', 'playground', 'spike', 'spikes', 'fixtures', 'e2e', 'tmp', 'temp',
+]);
 function detectStacks() {
-  // Scanne la racine + les dossiers front courants + les sous-dossiers directs de src/ (layout monorepo :
-  // back à la racine/.sln, front dans src/<projet>-front/package.json). On ne descend PAS dans node_modules.
-  const dirs = [projectDir, join(projectDir, 'src'), join(projectDir, 'backend'), join(projectDir, 'back'), join(projectDir, 'frontend'), join(projectDir, 'front'), join(projectDir, 'client'), join(projectDir, 'web')];
-  try { for (const d of readdirSync(join(projectDir, 'src'), { withFileTypes: true })) if (d.isDirectory() && d.name !== 'node_modules') dirs.push(join(projectDir, 'src', d.name)); } catch { /* pas de src/ */ }
-  const ls = (d) => { try { return readdirSync(d); } catch { return []; } };
   const found = new Set();
-  for (const d of dirs) {
-    const files = ls(d);
-    if (files.some((f) => f.endsWith('.csproj') || f.endsWith('.sln'))) found.add('dotnet');
-    if (files.includes('go.mod')) found.add('go');
-    if (files.includes('pyproject.toml') || files.includes('requirements.txt')) found.add('python');
-    if (files.includes('package.json')) { try { const pj = JSON.parse(read(join(d, 'package.json'))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) found.add('react'); } catch { /* */ } }
-  }
+  const walk = (dir) => {
+    let entries;
+    try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.isDirectory()) { if (!e.name.startsWith('.') && !NOISE.has(e.name)) walk(join(dir, e.name)); continue; }
+      const f = e.name;
+      if (/\.(csproj|vbproj|fsproj|sln)$/i.test(f)) found.add('dotnet');
+      else if (f === 'go.mod') found.add('go');
+      else if (f === 'Cargo.toml') found.add('rust');
+      else if (f === 'pom.xml' || f === 'build.gradle' || f === 'build.gradle.kts') found.add('java');
+      else if (f === 'pyproject.toml' || f === 'setup.py' || f === 'requirements.txt' || f === 'Pipfile') found.add('python');
+      else if (f === 'package.json') { try { const pj = JSON.parse(read(join(dir, f))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) found.add('react'); } catch { /* */ } }
+    }
+  };
+  walk(projectDir);
   return [...found];
 }
 

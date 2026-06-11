@@ -203,6 +203,33 @@ test('défaut sain : un .csproj présent → stack dotnet auto-détectée', () =
   clean(dir);
 });
 
+test('détection : variantes .NET en profondeur (.fsproj enfoui) → dotnet', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  mkdirSync(join(dir, 'a', 'b', 'c'), { recursive: true });
+  writeFileSync(join(dir, 'a', 'b', 'c', 'lib.fsproj'), '');
+  const { out } = sync(['--detect-config'], dir);
+  assert.match(out, /dotnet/, '.fsproj (même profond) doit compter comme dotnet');
+  clean(dir);
+});
+
+test('détection : un dossier d\'expérimentation (poc/) n\'est pas pris pour une stack', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  mkdirSync(join(dir, 'poc'), { recursive: true });
+  writeFileSync(join(dir, 'poc', 'requirements.txt'), 'flask\n');
+  const { out } = sync(['--detect-config'], dir);
+  assert.doesNotMatch(out, /python/, 'un requirements.txt dans poc/ ne doit pas déclencher python');
+  clean(dir);
+});
+
+test('détection non-dogmatique : react détecté hors src/ (nom de dossier arbitraire)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  mkdirSync(join(dir, 'mon-webapp'), { recursive: true });
+  writeFileSync(join(dir, 'mon-webapp', 'package.json'), JSON.stringify({ dependencies: { react: '^18' } }));
+  const { out } = sync(['--detect-config'], dir);
+  assert.match(out, /react/, 'react doit être détecté dans un dossier arbitraire (pas seulement src/)');
+  clean(dir);
+});
+
 test('détection monorepo : react dans src/<front>/package.json est détecté (back .sln à la racine)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
   writeFileSync(join(dir, 'app.sln'), '');
