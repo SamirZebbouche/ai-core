@@ -60,6 +60,30 @@ jobs:
           fi
           echo "Package OK — seuls conventions/ commands/ templates/ tools/ (+ README/HOWTO) sont publiés."
 
+  coverage:
+    name: Couverture (Node 22)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Couverture + seuils (lines 90 / funcs 85 / branches 70)
+        run: |
+          node --test --experimental-test-coverage \
+            --test-coverage-lines=90 \
+            --test-coverage-functions=85 \
+            --test-coverage-branches=70 2>&1 | tee cov.txt
+      - name: Résumé couverture
+        if: always()
+        run: |
+          {
+            echo "## Couverture (Node built-in, zéro dépendance)"
+            echo '```'
+            grep -E 'line %|sync-ai|all files' cov.txt || echo "(table non trouvée)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
   # Deliver = publier la version. Pas de "deploy" : ai-core est une librairie consommée, pas une app déployée.
   deliver:
     name: Deliver — release sur tag v*

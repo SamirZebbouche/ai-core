@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "sync": "node tools/sync-ai.mjs --out .sync-out",
-    "test": "node --test"
+    "test": "node --test",
+    "coverage": "node --test --experimental-test-coverage"
   },
   "bin": {
     "ai-core-sync": "tools/sync-ai.mjs"

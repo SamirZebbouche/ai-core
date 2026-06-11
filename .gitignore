@@ -6,3 +6,4 @@ conventions/contexts/*
 .sync-out/
 .ci-out/
 pack.log
+cov.txt
