@@ -147,6 +147,7 @@ Découvrir/configurer : `npx ai-core-sync --list` (catalogue) · `--config` (blo
 
 **Pour aller plus loin :** [`method.md`](conventions/method.md) (*comment* l'IA travaille) ·
 [`meta/architecture-principles.md`](conventions/meta/architecture-principles.md) (*le pourquoi*) ·
+[`meta/taxonomy.md`](conventions/meta/taxonomy.md) (*où va quoi*) ·
 [`tools/sync-ai.md`](tools/sync-ai.md) (la plomberie).
 
 ### Développer / contribuer

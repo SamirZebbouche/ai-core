@@ -44,6 +44,9 @@ ne touche que les fichiers qu'il génère.)*
 
 ## 2. Écrire tes bounded contexts (le seul vrai travail)
 
+> **Où ranger une règle ?** (cœur / stack / context / référence-pointeur) → la convention de placement est
+> dans [`conventions/meta/taxonomy.md`](conventions/meta/taxonomy.md) — *le rangement EST une convention*.
+
 Un fichier par contexte dans **`.ai/contexts/`** :
 
 ```markdown
