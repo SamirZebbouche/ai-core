@@ -176,6 +176,17 @@ test('garde-fou : une option inconnue échoue (ne lance PAS le sync) et suggère
   clean(dir);
 });
 
+test('auto-suffisance : aucune convention ne référence un fichier-source du cœur (lien mort une fois inliné/scopé)', () => {
+  const { dir } = sync(['--models', 'anthropic,copilot', '--stacks', 'dotnet']);
+  const claude = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+  const dotnet = readFileSync(join(dir, '.github', 'instructions', 'dotnet.instructions.md'), 'utf8');
+  for (const [name, content] of [['CLAUDE.md', claude], ['dotnet.instructions.md', dotnet]]) {
+    assert.doesNotMatch(content, /\]\((method\.md|global\.md|meta\/|stacks\/)/, `${name} : lien-fichier vers le cœur (mort chez le consommateur)`);
+    assert.doesNotMatch(content, /cf\.\s*`?meta\//, `${name} : référence meta/ par chemin (morte)`);
+  }
+  clean(dir);
+});
+
 test('aide : --help imprime l\'usage ; --detect-config affiche le bloc package.json', () => {
   const a = sync(['--help']);
   assert.match(a.out, /Usage/, '--help doit imprimer l\'usage');

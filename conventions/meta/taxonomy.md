@@ -36,6 +36,10 @@
 - **« Je le veux pour UN seul outil »** ou de la prose bespoke → **zone libre** de l'adapter (au-dessus /
   au-dessous du bloc managé). ai-core n'y touche jamais. *Mais* un `context` sert les **trois** outils.
 - **Spécifique à une techno DANS une commande** → fragment `<stack>.md` du dossier de la commande (additif).
+- **Auto-suffisance** : une convention/stack/context **ne référence pas un autre fichier du cœur par son
+  chemin** (style `[autre.md](autre.md)` ou « cf. un-autre-fichier §N »). Chaque fichier peut être généré
+  **seul** (instruction Copilot scopée) ou **inliné** → le chemin source n'existe **jamais** chez le
+  consommateur (lien mort). Énonce le principe, ou renvoie au **nom de section**.
 
 ## Le test « est-ce au bon endroit ? »
 

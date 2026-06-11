@@ -19,6 +19,6 @@
 - Un changement back n'est **pas fini** tant que le front n'est pas vérifié compatible (et vice-versa) :
   routes, DTOs/contrats, modèle de domaine, variables d'env.
 
-> Les principes de design (SOLID, hexagonal, « gagne ton archi », anti sur-engineering) sont dans
-> [`meta/architecture-principles.md`](meta/architecture-principles.md). Le *comment travailler* est dans
-> [`method.md`](method.md).
+> Les principes de design (SOLID, hexagonal, « gagne ton archi », anti sur-engineering) et le *comment
+> travailler* (protocole de délibération) font partie de ce bundle — voir les sections **Principes
+> d'architecture** et **Méthode**.
