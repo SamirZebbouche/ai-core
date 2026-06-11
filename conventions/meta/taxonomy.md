@@ -30,6 +30,9 @@
   Source de vérité : [docs/LEXIQUE.md](docs/LEXIQUE.md).
   ```
   Le lien survit à l'inline ; l'IA le suit à la demande.
+  Pour un **répertoire** (ADR, `docs/`…) : pointe le dossier — **ne pré-indexe pas**. Le LLM le lit
+  lui-même à l'init. **Règle : inline le STABLE (conventions), POINTE le VOLATIL (docs, ADR).** Inliner du
+  volatil te condamne à re-syncer à chaque changement — *le but n'est pas de sync tous les matins.*
 - **« Je le veux pour UN seul outil »** ou de la prose bespoke → **zone libre** de l'adapter (au-dessus /
   au-dessous du bloc managé). ai-core n'y touche jamais. *Mais* un `context` sert les **trois** outils.
 - **Spécifique à une techno DANS une commande** → fragment `<stack>.md` du dossier de la commande (additif).
