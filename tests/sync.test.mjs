@@ -156,6 +156,16 @@ test('catalogue : --list imprime les modèles et les commandes cœur', () => {
   clean(dir);
 });
 
+test('--conventions : liste les conventions injectées (cœur) ET repère les docs de convention', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  writeFileSync(join(dir, 'LEXIQUE.md'), '# Lexique\n');
+  const { out } = sync(['--conventions'], dir);
+  assert.match(out, /Méthode de travail IA/, 'doit citer la convention method.md (cœur)');
+  assert.match(out, /Principes d'architecture/, 'doit citer architecture-principles');
+  assert.match(out, /LEXIQUE\.md/, 'doit repérer le doc de convention LEXIQUE.md');
+  clean(dir);
+});
+
 test('aide : --help imprime l\'usage ; --detect-config affiche le bloc package.json', () => {
   const a = sync(['--help']);
   assert.match(a.out, /Usage/, '--help doit imprimer l\'usage');

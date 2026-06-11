@@ -34,6 +34,7 @@ jobs:
           node tools/sync-ai.mjs --list
           node tools/sync-ai.mjs --help
           node tools/sync-ai.mjs --detect-config
+          node tools/sync-ai.mjs --conventions
 
       - name: Smoke — génération sans crash (3 modèles)
         run: |

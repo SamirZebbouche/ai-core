@@ -12,7 +12,7 @@
 import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve, relative, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fmField, fmList } from './lib/text.mjs';
+import { fmField, fmList, firstH1, stripFrontmatter } from './lib/text.mjs';
 import { managedBlock } from './lib/managed.mjs';
 import { assembleConventions, assembleCommandBody } from './lib/assemble.mjs';
 import { MODELS, normModel, pick } from './lib/select.mjs';
@@ -78,6 +78,22 @@ function detectStacks() {
   return ev;
 }
 
+// Repère (honnêtement, chemin cité) les docs de convention courants : lexique, glossaire, ADR,
+// architecture, contributing… Pour que l'IA les considère : les pointer depuis un context (cf. taxonomy).
+function findConventionDocs() {
+  const RX = /^(lexique|glossaire|glossary|ubiquitous|architecture|contributing|conventions?)[\w. -]*\.md$/i;
+  const out = [];
+  const walk = (dir) => {
+    let entries; try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const e of entries) {
+      if (e.isDirectory()) { if (!e.name.startsWith('.') && !NOISE.has(e.name)) walk(join(dir, e.name)); continue; }
+      if (RX.test(e.name) || /adr[-_ ]?\d/i.test(e.name)) out.push(posix(relative(projectDir, join(dir, e.name))));
+    }
+  };
+  walk(projectDir);
+  return out.sort().slice(0, 25);
+}
+
 // --- CLI informatif (sortie immédiate) ---
 if (args.includes('--help') || args.includes('-h')) {
   console.log(`ai-core-sync — génère les adapters IA (conventions + commandes) depuis le cœur ai-core.
@@ -92,6 +108,7 @@ Options
   --list           catalogue : modèles / stacks / commandes disponibles
   --detect-config  AFFICHE le bloc "ai-core" suggéré (lecture seule, stacks auto-détectées)
   --config         ÉCRIT/met à jour "ai-core" dans package.json (ADDITIF : ajoute les stacks détectées, garde tes models)
+  --conventions    liste les conventions injectées (transparence) + repère tes docs de convention (lexique, ADR…)
   --help           cette aide
 
 Config (package.json)
@@ -155,6 +172,30 @@ if (args.includes('--list')) {
   console.log('  commandes (cœur)   :', subdirs(coreCommandsDir).join(', ') || '—');
   console.log('  commandes (projet) :', subdirs(localCommandsDir).join(', ') || '—');
   console.log('  contexts (projet)  :', mdFiles(contextsDir).map((f) => basename(f, '.md')).join(', ') || '—');
+  process.exit(0);
+}
+
+if (args.includes('--conventions')) {
+  const titleOf = (p) => { try { return firstH1(stripFrontmatter(read(p))) || basename(p); } catch { return basename(p); } };
+  const stacks = (() => { const f = argVal('--stacks'); if (f) return f.split(',').map((s) => s.trim()).filter(Boolean); if (Array.isArray(projectCfg().stacks)) return projectCfg().stacks; return Object.keys(detectStacks()); })();
+  console.log('Conventions injectées dans tes adapters — ce que l\'IA suit RÉELLEMENT :\n');
+  console.log('  Cœur (partagé, gouverné par ai-core) :');
+  for (const p of [join(coreDir, 'method.md'), join(coreDir, 'global.md'), ...mdFiles(join(coreDir, 'meta')).map((f) => join(coreDir, 'meta', f))]) console.log(`    · ${titleOf(p)}`);
+  console.log(`  Stacks (${stacks.join(', ') || 'aucune'}) :`);
+  const stackFiles = mdFiles(join(coreDir, 'stacks')).filter((f) => stacks.includes(basename(f, '.md')));
+  if (stackFiles.length) for (const f of stackFiles) console.log(`    · ${titleOf(join(coreDir, 'stacks', f))}`);
+  else console.log('    · (aucune convention de stack du cœur pour ces stacks)');
+  console.log('  Contexts projet (.ai/contexts/) :');
+  const ctx = mdFiles(contextsDir);
+  if (ctx.length) for (const f of ctx) console.log(`    · ${titleOf(join(contextsDir, f))}`);
+  else console.log('    · (aucun — c\'est ici que tu mets tes règles locales)');
+  const docs = findConventionDocs();
+  if (docs.length) {
+    console.log('\n  📎 Docs de convention repérés dans le projet — pour que l\'IA les considère, pointe-les depuis un context (cf. taxonomy.md) :');
+    for (const d of docs) console.log(`    · ${d}`);
+  } else {
+    console.log('\n  💡 Conventions projet courantes à expliciter (cf. taxonomy.md) : Ubiquitous Language → .ai/contexts/lexique.md (pointe docs/lexique.md) · ADRs → un context pointant docs/adr/ · design system.');
+  }
   process.exit(0);
 }
 
