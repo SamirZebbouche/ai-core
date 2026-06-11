@@ -10,18 +10,18 @@
 npm i -D github:SamirZebbouche/ai-core#v0.1.0
 ```
 
-Dans **`package.json`** — choisis tes **outils** + **stacks**, et auto-régénère à l'install :
+Dans **`package.json`** — choisis tes **modèles** + **stacks** (ou `npx ai-core-sync --config` te suggère le bloc) :
 
 ```jsonc
 {
   "ai-core": {
-    "tools":  ["claude", "copilot"],   // quels assistants générer (sinon : tous)
-    "stacks": ["dotnet", "react"]       // quelles stacks inclure — additive (sinon : toutes)
+    "models": ["anthropic", "copilot"],   // assistants : anthropic, gemini, copilot (sinon : tous)
+    "stacks": ["dotnet", "react"]          // stacks à inclure — additive (sinon : toutes)
   }
 }
 ```
 
-> Un shop **Claude-only** met `"tools": ["claude"]` → pas de `GEMINI.md` ni `.github/` qui polluent.
+> Un shop **Claude-only** met `"models": ["anthropic"]` → pas de `GEMINI.md` ni `.github/` qui polluent.
 > Optionnel — auto-rafraîchir le bloc à chaque install : `"scripts": { "postinstall": "ai-core-sync" }`.
 
 ### Souplesse — zone managée vs zone libre
@@ -64,10 +64,25 @@ applyTo: "src/**/Catalog/**"
 - CRUD assumé. ❌ Pas de Value Object dans les ViewModels.
 ```
 
+## 2bis. Commandes projet — multi-techno, additives (optionnel)
+
+Une commande vit dans `.ai/commands/<nom>/` : un `command.md` (squelette) + des fragments `<stack>.md`
+**assemblés selon tes stacks**. Ex. `/check` = back .NET **+** front React :
+
+```
+.ai/commands/check/
+  command.md   # description + intro + {{stacks}} + comportement attendu
+  dotnet.md    # inclus SI stack dotnet  (le fix Windows BaseOutputPath vit ici)
+  react.md     # inclus SI stack react
+```
+
+→ génère `.claude/commands/check.md` (+ `.github/prompts/`, `.gemini/commands/` selon `models`).
+**Une source → tous les formats, drift impossible.** `/deliberate` est fournie par le cœur.
+
 ## 3. Générer
 
 ```bash
-npx ai-core-sync     # → CLAUDE.md, GEMINI.md, .github/* (au root, pour que les outils les trouvent)
+npx ai-core-sync     # → CLAUDE.md, GEMINI.md, .github/*, .claude/commands/* (au root, pour les outils)
 ```
 
 C'est tout. Claude / Copilot / Gemini lisent désormais **la même méthode** + **tes règles locales**.
@@ -78,7 +93,9 @@ C'est tout. Claude / Copilot / Gemini lisent désormais **la même méthode** + 
 |----------|---------|
 | changer un contexte | édite `.ai/contexts/*.md` → `npx ai-core-sync` |
 | changer de stacks | édite `package.json` `"ai-core".stacks` → `npx ai-core-sync` |
-| changer d'assistants | édite `package.json` `"ai-core".tools` → `npx ai-core-sync` |
+| changer de modèles | édite `package.json` `"ai-core".models` → `npx ai-core-sync` |
+| ajouter une commande | crée `.ai/commands/<nom>/command.md` (+ `<stack>.md`) → `npx ai-core-sync` |
+| voir / configurer | `npx ai-core-sync --list` · `--config` · `--help` |
 | mettre à jour le cœur | `npm update @samirzebbouche/ai-core` → `npx ai-core-sync` |
 | proposer une règle au cœur | PR sur le repo `ai-core` → ratification → bump |
 

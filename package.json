@@ -12,6 +12,7 @@
   },
   "files": [
     "conventions",
+    "commands",
     "templates",
     "tools",
     "HOWTO.md"

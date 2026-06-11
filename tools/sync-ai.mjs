@@ -1,143 +1,174 @@
 #!/usr/bin/env node
-// tools/sync-ai.mjs — génère les adapters IA depuis le cœur conventions/ (+ contexts project-local).
-// Zéro dépendance. Idempotent.
+// tools/sync-ai.mjs — génère adapters (conventions) + commandes depuis le cœur (+ project-local .ai/).
+// Zéro dépendance. Idempotent. Le sync ne SUPPRIME jamais : il propose (orphelins), avertit, ignore.
 //
-// SOUPLESSE — zone managée : dans CLAUDE.md / GEMINI.md / copilot-instructions.md, le sync ne réécrit
-// QUE le bloc entre <!-- ai-core:start --> et <!-- ai-core:end -->. Tout le reste (tes instructions
-// PROJET, à la main) est PRÉSERVÉ. Ces fichiers sont donc committés, pas gitignorés.
+// SOUPLESSE — zone managée : CLAUDE.md / GEMINI.md / copilot-instructions.md ne voient réécrire QUE le
+// bloc entre <!-- ai-core:start --> et <!-- ai-core:end -->. Le reste (ta prose) est préservé.
 //
-// SÛRETÉ — le sync ne supprime JAMAIS rien : il PROPOSE (orphelins), AVERTIT (collisions, marqueurs
-// malformés), et ignore ce qu'il ne peut pas réécrire sans risque.
+// SÉLECTION (la "finesse", additive) :
+//   models   : --models  > package.json "ai-core".models   > tous (anthropic, gemini, copilot)
+//   stacks   : --stacks   > package.json "ai-core".stacks    > toutes
+//   commands : --commands > package.json "ai-core".commands  > toutes
 //
-// Usage :
-//   npx ai-core-sync                          # racine d'un projet
-//   ... --out DIR                              # sortie custom (self-test)
-//   ... --stacks dotnet,react                  # quelles stacks inclure (additif)
-//   ... --tools claude,copilot                 # quels assistants générer (sinon : tous)
+// COMMANDES (multi-techno, additives) : commands/<nom>/command.md (squelette + {{stacks}}) +
+//   commands/<nom>/<stack>.md (fragments inclus selon les stacks sélectionnées). Cœur OU .ai/commands/.
 //
-// Sélection (la "finesse") :
-//   stacks : --stacks  >  package.json "ai-core".stacks  >  toutes
-//   outils : --tools   >  package.json "ai-core".tools   >  tous (claude, gemini, copilot)
+// Usage : npx ai-core-sync [--out DIR] [--models a,b] [--stacks a,b] [--commands a,b] [--list]
 
-import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, readdirSync, existsSync, mkdirSync, statSync } from 'node:fs';
 import { join, dirname, resolve, relative, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const coreDir = resolve(scriptDir, '..', 'conventions');
+const coreCommandsDir = resolve(scriptDir, '..', 'commands');
 
 const args = process.argv.slice(2);
 const argVal = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const projectDir = process.cwd();
 const outDir = argVal('--out') ? resolve(projectDir, argVal('--out')) : projectDir;
-const contextsDir = join(projectDir, '.ai', 'contexts'); // project-local : un seul dossier caché .ai/
+const contextsDir = join(projectDir, '.ai', 'contexts');
+const localCommandsDir = join(projectDir, '.ai', 'commands');
 
-// Marqueurs de zone managée. Le reste du fichier = zone LIBRE (jamais touchée).
 const MARK_START = '<!-- ai-core:start';
 const START_LINE = '<!-- ai-core:start — zone GÉNÉRÉE, ne pas éditer (édite conventions/ puis relance le sync) -->';
 const MARK_END = '<!-- ai-core:end -->';
-const HEADER = "<!-- GÉNÉRÉ par ai-core/tools/sync-ai — n'édite PAS ce fichier, édite conventions/ -->\n";
+const HEADER = "<!-- GÉNÉRÉ par ai-core/tools/sync-ai — n'édite PAS, édite le cœur (conventions/, commands/) -->\n";
+const MODELS = ['anthropic', 'gemini', 'copilot'];
+const ALIAS = { claude: 'anthropic', anthropic: 'anthropic', gemini: 'gemini', copilot: 'copilot', github: 'copilot' };
 
 // --- helpers ---
 const read = (p) => readFileSync(p, 'utf8');
 const rel = (p) => posix(relative(outDir, p)) || basename(p);
-const mdFiles = (dir) => existsSync(dir)
-  ? readdirSync(dir).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md').sort()
-  : [];
-const stripFrontmatter = (s) => s.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
 const posix = (p) => p.split('\\').join('/');
+const mdFiles = (dir) => existsSync(dir) ? readdirSync(dir).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md').sort() : [];
+const subdirs = (dir) => existsSync(dir) ? readdirSync(dir).filter((f) => { try { return statSync(join(dir, f)).isDirectory(); } catch { return false; } }).sort() : [];
+const stripFrontmatter = (s) => s.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
+const frontmatter = (s) => { const m = s.match(/^---\r?\n([\s\S]*?)\r?\n---\r?\n/); return m ? m[1] : ''; };
+const fmField = (s, k) => { const m = frontmatter(s).match(new RegExp('^' + k + ':\\s*(.+)$', 'm')); return m ? m[1].trim().replace(/^["']|["']$/g, '') : ''; };
+const fmList = (s, k) => { const v = fmField(s, k); return v ? v.replace(/^\[|\]$/g, '').split(',').map((x) => x.trim().replace(/^["']|["']$/g, '')).filter(Boolean) : []; };
 const ensureDir = (p) => { if (!existsSync(p)) mkdirSync(p, { recursive: true }); };
-const WRITTEN = new Set(); // chemins écrits CE run (pour repérer les orphelins ensuite)
+const WRITTEN = new Set();
 const write = (p, content) => { ensureDir(dirname(p)); writeFileSync(p, content); WRITTEN.add(resolve(p)); console.log('  →', rel(p)); };
-const headerAfterFrontmatter = (content) => {
-  const m = content.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n)/);
-  return m ? m[1] + HEADER + content.slice(m[1].length) : HEADER + content;
-};
-// "signé ai-core" = généré par un sync (header ou bloc managé) — sert à distinguer un orphelin d'un fichier MANUEL.
-const aiSigned = (p) => { try { const s = read(p); return s.includes('ai-core:start') || s.includes('par ai-core/tools'); } catch { return false; } };
+const headerAfterFrontmatter = (content) => { const m = content.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n)/); return m ? m[1] + HEADER + content.slice(m[1].length) : HEADER + content; };
+const aiSigned = (p) => { try { const s = read(p); return s.includes('ai-core:start') || s.includes('par ai-core'); } catch { return false; } };
 
-// Écrit/rafraîchit UNIQUEMENT le bloc managé ; préserve la zone libre. Marqueurs malformés → AVERTIT et IGNORE.
 function writeManaged(path, bodyText, title) {
   const block = `${START_LINE}\n${bodyText}\n${MARK_END}`;
-  if (!existsSync(path)) {
-    const scaffold = `# ${title}\n\n<!-- Zone LIBRE : tes instructions PROJET ici (au-dessus / au-dessous du bloc). ai-core ne gère QUE le bloc ci-dessous. -->\n\n`;
-    write(path, scaffold + block + '\n');
-    return;
-  }
+  if (!existsSync(path)) { write(path, `# ${title}\n\n<!-- Zone LIBRE : tes instructions PROJET ici. ai-core ne gère QUE le bloc ci-dessous. -->\n\n${block}\n`); return; }
   const existing = read(path);
   const nStart = (existing.match(/<!-- ai-core:start/g) || []).length;
   const nEnd = (existing.match(/<!-- ai-core:end -->/g) || []).length;
-  if (nStart === 0 && nEnd === 0) { // pas de bloc → on AJOUTE (manuel préservé)
-    const sep = existing.endsWith('\n') ? '\n' : '\n\n';
-    write(path, existing + sep + block + '\n');
-    return;
-  }
-  if (nStart !== 1 || nEnd !== 1) {
-    console.warn(`  ⚠️ ${rel(path)} : marqueurs ai-core malformés (${nStart} start / ${nEnd} end) — IGNORÉ. Garde UN start + UN end.`);
-    return;
-  }
+  if (nStart === 0 && nEnd === 0) { write(path, existing + (existing.endsWith('\n') ? '\n' : '\n\n') + block + '\n'); return; }
+  if (nStart !== 1 || nEnd !== 1) { console.warn(`  ⚠️ ${rel(path)} : marqueurs malformés (${nStart} start / ${nEnd} end) — IGNORÉ.`); return; }
   const s = existing.indexOf(MARK_START), e = existing.indexOf(MARK_END);
   if (e < s) { console.warn(`  ⚠️ ${rel(path)} : 'end' avant 'start' — IGNORÉ.`); return; }
   write(path, existing.slice(0, s) + block + existing.slice(e + MARK_END.length));
 }
 
-// --- config projet (lue une fois) : package.json "ai-core": { stacks, tools } ---
+// --- config projet (lue une fois) ---
 let _cfg;
-const projectCfg = () => {
-  if (_cfg !== undefined) return _cfg;
-  _cfg = {};
-  const pkg = join(projectDir, 'package.json');
-  if (existsSync(pkg)) { try { _cfg = JSON.parse(read(pkg))['ai-core'] || {}; } catch { /* config absente/invalide */ } }
-  return _cfg;
-};
+const projectCfg = () => { if (_cfg !== undefined) return _cfg; _cfg = {}; const pkg = join(projectDir, 'package.json'); if (existsSync(pkg)) { try { _cfg = JSON.parse(read(pkg))['ai-core'] || {}; } catch { /* */ } } return _cfg; };
 
-// --- sélection des stacks (sur fichiers ; additive) ---
-function pickStacks(allStacks) {
+// sélection générique : --flag > package.json > tout. `norm` normalise (alias).
+function pick(label, flag, cfgKey, available, norm = (x) => x) {
   let names = null;
-  const flag = argVal('--stacks');
-  if (flag) names = flag.split(',').map((s) => s.trim()).filter(Boolean);
-  if (!names && Array.isArray(projectCfg().stacks)) names = projectCfg().stacks;
-  if (!names) { console.log('  (stacks : TOUTES — --stacks ou package.json "ai-core".stacks)'); return allStacks; }
-  const want = new Set(names);
-  const missing = names.filter((n) => !allStacks.some((f) => basename(f, '.md') === n));
-  if (missing.length) console.warn('  ⚠️ stacks introuvables dans le cœur :', missing.join(', '));
-  return allStacks.filter((f) => want.has(basename(f, '.md')));
+  const f = argVal(flag);
+  if (f) names = f.split(',').map((s) => s.trim()).filter(Boolean);
+  if (!names && Array.isArray(projectCfg()[cfgKey])) names = projectCfg()[cfgKey];
+  if (!names) return available.slice();
+  const want = new Set(names.map(norm));
+  const missing = names.map(norm).filter((n) => !available.includes(n));
+  if (missing.length) console.warn(`  ⚠️ ${label} inconnu(s) : ${missing.join(', ')}`);
+  return available.filter((a) => want.has(a));
 }
 
-// --- sélection des outils cibles (LLM) ---
-function pickTools() {
-  const all = ['claude', 'gemini', 'copilot'];
-  let names = null;
-  const flag = argVal('--tools');
-  if (flag) names = flag.split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
-  if (!names && Array.isArray(projectCfg().tools)) names = projectCfg().tools.map((s) => String(s).toLowerCase());
-  if (!names) { console.log('  (outils : TOUS — --tools ou package.json "ai-core".tools)'); return all; }
-  const missing = names.filter((n) => !all.includes(n));
-  if (missing.length) console.warn('  ⚠️ outils inconnus :', missing.join(', '), '— connus : claude, gemini, copilot');
-  return all.filter((t) => names.includes(t));
+// --- aide (--help) ---
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`ai-core-sync — génère les adapters IA (conventions + commandes) depuis le cœur ai-core.
+
+Usage : npx ai-core-sync [options]
+
+Options
+  --models a,b     modèles cibles : anthropic, gemini, copilot   (défaut : tous ; alias claude=anthropic)
+  --stacks a,b     stacks à inclure                              (défaut : toutes celles du cœur)
+  --commands a,b   commandes à générer                           (défaut : toutes)
+  --out DIR        dossier de sortie                             (défaut : racine du projet)
+  --list           catalogue : modèles / stacks / commandes disponibles
+  --config         suggère le bloc "ai-core" pour package.json (stacks auto-détectées)
+  --help           cette aide
+
+Config (package.json)
+  "ai-core": { "models": ["anthropic"], "stacks": ["dotnet","react"] }
+
+Project-local (sous .ai/)
+  .ai/contexts/<ctx>.md             bounded contexts (règles locales)
+  .ai/commands/<cmd>/command.md     commande projet (+ <stack>.md = fragments ADDITIFS)
+
+Génère (selon --models) : CLAUDE.md · GEMINI.md · .github/* · .claude/commands/* · .gemini/commands/*
+Seul le bloc <!-- ai-core:start … end --> est réécrit ; ta zone libre est préservée. Doc : HOWTO.md`);
+  process.exit(0);
+}
+
+// --- config suggérée (--config) : stacks auto-détectées, bloc prêt à coller ---
+if (args.includes('--config')) {
+  const hasF = (dir, t) => { try { return readdirSync(dir).some(t); } catch { return false; } };
+  const detected = [];
+  if ([projectDir, join(projectDir, 'src')].some((d) => hasF(d, (f) => f.endsWith('.csproj') || f.endsWith('.sln')))) detected.push('dotnet');
+  try { const pj = JSON.parse(read(join(projectDir, 'package.json'))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) detected.push('react'); } catch { /* pas de package.json */ }
+  if (hasF(projectDir, (f) => f === 'pyproject.toml' || f === 'requirements.txt')) detected.push('python');
+  if (hasF(projectDir, (f) => f === 'go.mod')) detected.push('go');
+  const stacks = detected.length ? detected : mdFiles(join(coreDir, 'stacks')).map((f) => basename(f, '.md'));
+  console.log('Config ai-core — colle ce bloc dans package.json :\n');
+  console.log('  "ai-core": {');
+  console.log(`    "models": ${JSON.stringify(MODELS)},`);
+  console.log(`    "stacks": ${JSON.stringify(stacks)}`);
+  console.log('  }\n');
+  console.log(`Stacks ${detected.length ? 'auto-détectées : ' + detected.join(', ') : '(toutes celles du cœur)'} — ajuste à ton projet.`);
+  console.log('Modèles : anthropic, gemini, copilot — retire ceux que tu n\'utilises pas (alias claude=anthropic).');
+  console.log('Optionnel : "scripts": { "postinstall": "ai-core-sync" }   ·   Aide : npx ai-core-sync --help');
+  process.exit(0);
+}
+
+// --- catalogue (--list) ---
+if (args.includes('--list')) {
+  const coreStacks = mdFiles(join(coreDir, 'stacks')).map((f) => basename(f, '.md'));
+  console.log('Catalogue ai-core');
+  console.log('  modèles            :', MODELS.join(', '));
+  console.log('  stacks (cœur)      :', coreStacks.join(', ') || '—');
+  console.log('  commandes (cœur)   :', subdirs(coreCommandsDir).join(', ') || '—');
+  console.log('  commandes (projet) :', subdirs(localCommandsDir).join(', ') || '—');
+  console.log('  contexts (projet)  :', mdFiles(contextsDir).map((f) => basename(f, '.md')).join(', ') || '—');
+  process.exit(0);
 }
 
 // --- collecte ---
 if (!existsSync(coreDir)) { console.error('ERREUR : cœur introuvable :', coreDir); process.exit(1); }
+const allStacks = mdFiles(join(coreDir, 'stacks')).map((f) => join(coreDir, 'stacks', f));
+// stacks DEMANDÉES (brutes) : une stack peut n'exister que comme fragment de commande (ex. react sans convention cœur).
+const requestedStacks = (() => {
+  const f = argVal('--stacks');
+  if (f) return f.split(',').map((s) => s.trim()).filter(Boolean);
+  if (Array.isArray(projectCfg().stacks)) return projectCfg().stacks;
+  return allStacks.map((x) => basename(x, '.md')); // défaut : toutes les stacks du cœur
+})();
 const core = {
   method: join(coreDir, 'method.md'),
   global: join(coreDir, 'global.md'),
   meta: mdFiles(join(coreDir, 'meta')).map((f) => join(coreDir, 'meta', f)),
-  stacks: pickStacks(mdFiles(join(coreDir, 'stacks')).map((f) => join(coreDir, 'stacks', f))),
+  stacks: allStacks.filter((f) => requestedStacks.includes(basename(f, '.md'))),
 };
 const contexts = mdFiles(contextsDir).map((f) => join(contextsDir, f));
-const tools = pickTools();
+const models = pick('modèle', '--models', 'models', MODELS, (x) => ALIAS[x.toLowerCase()] || x.toLowerCase());
 
-// garde anti-collision : stack & context de MÊME nom → même *.instructions.md (le context écraserait le stack)
 const collide = core.stacks.map((f) => basename(f, '.md')).filter((n) => contexts.some((f) => basename(f, '.md') === n));
 if (collide.length) console.warn('  ⚠️ collision stack/context (même nom → même .instructions.md ; le context gagne) :', collide.join(', '));
 
 console.log(`ai-core sync → ${posix(relative(projectDir, outDir)) || '.'}`);
-console.log(`  outils : ${tools.join(', ') || '—'}  ·  stacks : ${core.stacks.map((f) => basename(f, '.md')).join(', ') || '—'}  ·  contexts : ${contexts.length}`);
+console.log(`  modèles : ${models.join(', ') || '—'}  ·  stacks : ${requestedStacks.join(', ') || '—'}  ·  contexts : ${contexts.length}`);
 
-// --- corps inline (auto-suffisant) + LISIBILITÉ : sommaire en tête + provenance par section ---
+// --- conventions inline + lisibilité (sommaire navigable + provenance) ---
 const firstH1 = (s) => { const m = s.match(/^#\s+(.+)$/m); return m ? m[1].trim() : ''; };
-// slug façon VSCode/GitHub : minuscules, espaces→-, ponctuation + balisage markdown retirés (accents gardés).
 const slugify = (h) => h.trim().toLowerCase().replace(/\s+/g, '-').replace(/[\[\]!\/'"#$%&()*+,.:;<=>?@\\^_{|}~`—·…]/g, '');
 const assemble = (files) => {
   const parts = files.map((f) => { const c = stripFrontmatter(read(f)).trim(); return { name: basename(f), title: firstH1(c) || basename(f), c }; });
@@ -145,36 +176,50 @@ const assemble = (files) => {
   const sections = parts.map((p) => `<!-- ───── ${p.name} ───── -->\n${p.c}`).join('\n\n');
   return `## Sommaire (généré — ne pas éditer)\n${toc}\n\n${sections}`;
 };
-const body = assemble([core.method, core.global, ...core.meta, ...core.stacks, ...contexts]);
+const convBody = assemble([core.method, core.global, ...core.meta, ...core.stacks, ...contexts]);
 
-// Fichiers "manuel + managé" : on ne réécrit que le bloc balisé.
-if (tools.includes('claude')) writeManaged(join(outDir, 'CLAUDE.md'), body, 'CLAUDE.md');
-if (tools.includes('gemini')) writeManaged(join(outDir, 'GEMINI.md'), body, 'GEMINI.md');
-if (tools.includes('copilot')) {
+if (models.includes('anthropic')) writeManaged(join(outDir, 'CLAUDE.md'), convBody, 'CLAUDE.md');
+if (models.includes('gemini')) writeManaged(join(outDir, 'GEMINI.md'), convBody, 'GEMINI.md');
+if (models.includes('copilot')) {
   writeManaged(join(outDir, '.github', 'copilot-instructions.md'), assemble([core.global, core.method, ...core.meta]), 'Copilot Instructions');
-  // Instructions scopées : 1:1 avec un fichier du cœur → entièrement générées (manuel = ajoute TON propre *.instructions.md).
-  for (const f of [...core.stacks, ...contexts]) {
-    write(join(outDir, '.github', 'instructions', `${basename(f, '.md')}.instructions.md`), headerAfterFrontmatter(read(f)));
-  }
+  for (const f of [...core.stacks, ...contexts]) write(join(outDir, '.github', 'instructions', `${basename(f, '.md')}.instructions.md`), headerAfterFrontmatter(read(f)));
 }
 
-// --- orphelins : générés par un ANCIEN sync, sans source/outil actuel. On PROPOSE, on NE supprime PAS. ---
+// --- commandes (multi-techno, additives) : cœur + .ai/commands ; assemble {{stacks}} ; génère par modèle ---
+const cmdSources = [...subdirs(coreCommandsDir).map((n) => [n, join(coreCommandsDir, n)]), ...subdirs(localCommandsDir).map((n) => [n, join(localCommandsDir, n)])];
+const byName = new Map();
+for (const [n, d] of cmdSources) { if (byName.has(n)) console.warn(`  ⚠️ commande '${n}' définie 2× (la locale écrase le cœur)`); byName.set(n, d); } // local après cœur → écrase
+const pickedCommands = pick('commande', '--commands', 'commands', [...byName.keys()]);
+
+function assembleCommand(dir) {
+  const cmdFile = join(dir, 'command.md');
+  if (!existsSync(cmdFile)) { console.warn(`  ⚠️ commande sans command.md : ${rel(dir)} — ignorée`); return null; }
+  const raw = read(cmdFile);
+  const frags = readdirSync(dir).filter((f) => f.endsWith('.md') && f !== 'command.md' && requestedStacks.includes(basename(f, '.md'))).sort()
+    .map((f) => stripFrontmatter(read(join(dir, f))).trim());
+  const fragText = frags.join('\n\n');
+  const skeleton = stripFrontmatter(raw).trim();
+  const body = skeleton.includes('{{stacks}}') ? skeleton.replace('{{stacks}}', fragText) : (fragText ? `${skeleton}\n\n${fragText}` : skeleton);
+  return { description: fmField(raw, 'description'), models: fmList(raw, 'models'), body };
+}
+for (const name of pickedCommands) {
+  const cmd = assembleCommand(byName.get(name));
+  if (!cmd) continue;
+  const targets = cmd.models.length ? models.filter((m) => cmd.models.map((x) => ALIAS[x.toLowerCase()] || x.toLowerCase()).includes(m)) : models;
+  const fm = `---\ndescription: ${JSON.stringify(cmd.description)}\n---\n`;
+  if (targets.includes('anthropic')) write(join(outDir, '.claude', 'commands', `${name}.md`), fm + HEADER + cmd.body + '\n');
+  if (targets.includes('copilot')) write(join(outDir, '.github', 'prompts', `${name}.prompt.md`), fm + HEADER + cmd.body + '\n');
+  if (targets.includes('gemini')) write(join(outDir, '.gemini', 'commands', `${name}.toml`), `# GÉNÉRÉ par ai-core — édite commands/${name}/\ndescription = ${JSON.stringify(cmd.description)}\nprompt = '''\n${cmd.body}\n'''\n`);
+}
+
+// --- orphelins : signés ai-core, plus écrits ce run → PROPOSER (jamais supprimer) ---
 const orphans = [];
-const instrDir = join(outDir, '.github', 'instructions');
-if (existsSync(instrDir)) {
-  for (const f of readdirSync(instrDir).filter((f) => f.endsWith('.instructions.md'))) {
-    const p = join(instrDir, f);
-    if (!WRITTEN.has(resolve(p)) && aiSigned(p)) orphans.push(p);
-  }
-}
-const ADAPTERS = { claude: 'CLAUDE.md', gemini: 'GEMINI.md', copilot: join('.github', 'copilot-instructions.md') };
-for (const [t, relp] of Object.entries(ADAPTERS)) {
-  if (tools.includes(t)) continue; // outil dé-sélectionné : son adapter devient peut-être orphelin
-  const p = join(outDir, relp);
-  if (existsSync(p) && aiSigned(p)) orphans.push(p);
-}
+const scanDirs = [[join(outDir, '.github', 'instructions'), '.instructions.md'], [join(outDir, '.claude', 'commands'), '.md'], [join(outDir, '.github', 'prompts'), '.prompt.md'], [join(outDir, '.gemini', 'commands'), '.toml']];
+for (const [dir, suf] of scanDirs) if (existsSync(dir)) for (const f of readdirSync(dir).filter((x) => x.endsWith(suf))) { const p = join(dir, f); if (!WRITTEN.has(resolve(p)) && aiSigned(p)) orphans.push(p); }
+const ADAPTERS = { anthropic: 'CLAUDE.md', gemini: 'GEMINI.md', copilot: join('.github', 'copilot-instructions.md') };
+for (const [m, relp] of Object.entries(ADAPTERS)) { if (models.includes(m)) continue; const p = join(outDir, relp); if (existsSync(p) && aiSigned(p)) orphans.push(p); }
 if (orphans.length) {
-  console.warn('  🧹 Orphelins (ancien sync, plus de source/outil) — à SUPPRIMER toi-même si voulu :');
+  console.warn('  🧹 Orphelins (ancien sync, plus de source/modèle) — à SUPPRIMER toi-même si voulu :');
   for (const p of orphans) console.warn('     - ' + rel(p));
   console.warn('     (ai-core ne supprime jamais seul ; vérifie ta zone libre avant.)');
 }

@@ -114,10 +114,10 @@ conventions/
 
 ```
 mon-projet/
-  .ai/contexts/            ← TON seul dossier à gérer (bounded contexts, committé)
-  package.json             ← devDep + "ai-core": { "tools": [...], "stacks": [...] }
+  .ai/contexts/  .ai/commands/   ← TON espace (bounded contexts + commandes projet, committé)
+  package.json             ← devDep + "ai-core": { "models": [...], "stacks": [...] }
   node_modules/@samirzebbouche/ai-core/   ← le cœur (npm, caché)
-  CLAUDE.md  GEMINI.md  .github/…   ← bloc GÉNÉRÉ (selon "tools") + ta ZONE LIBRE — committés
+  CLAUDE.md  GEMINI.md  .github/*  .claude/commands/*   ← GÉNÉRÉS (selon "models") + ta ZONE LIBRE
 ```
 
 L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version → `npm update` à ton rythme.
@@ -129,15 +129,18 @@ L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version
 npm i -D github:SamirZebbouche/ai-core#v0.1.0     # GitHub, ou un registry privé
 ```
 
-Puis : choisis tes **outils** + **stacks** (`package.json` → `"ai-core": { "tools": ["claude"], "stacks": ["dotnet","react"] }`),
+Puis : choisis tes **modèles** + **stacks** (`package.json` → `"ai-core": { "models": ["anthropic"], "stacks": ["dotnet","react"] }`),
 écris tes bounded contexts dans **`.ai/contexts/`**, lance **`npx ai-core-sync`**. Les adapters sont **committés** :
 le sync ne réécrit qu'un **bloc balisé** (`<!-- ai-core:start … end -->`) — ta **zone libre** (instructions
 projet) est préservée. **Pas-à-pas → [HOWTO.md](HOWTO.md).**
 
-**La « finesse » — deux axes, additifs (sans config → tout) :**
-- **Outils** (`tools` / `--tools claude,copilot`) : ne génère que les adapters des assistants que tu utilises —
-  un shop Claude-only n'a ni `GEMINI.md` ni `.github/` qui polluent.
-- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas les règles React dans le contexte de l'IA.
+**La « finesse » — trois axes, additifs (sans config → tout) :**
+- **Modèles** (`models` / `--models anthropic,copilot`) : ne génère que les adapters des assistants utilisés —
+  un shop Claude-only n'a ni `GEMINI.md` ni `.github/` qui polluent (alias `claude`=`anthropic`).
+- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas les règles React.
+- **Commandes** (`.ai/commands/<cmd>/`) : multi-techno, **assemblées additivement** par stack (ex. `/check` = back .NET + front React).
+
+Découvrir/configurer : `npx ai-core-sync --list` (catalogue) · `--config` (bloc package.json) · `--help`.
 
 > *Cas dégénéré (Claude seul, sans Node) : submodule + `@import` `conventions/` à la main — mais tu perds
 > Copilot/Gemini, le sync et la sélection.*
