@@ -120,6 +120,39 @@ mon-projet/
 L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version → les projets pull à leur
 rythme. *Extensibilité et interop, réalisées par le versioning Git.*
 
+### Importer `ai-core` dans un projet existant
+
+**Option A — submodule** (simple, sans infra de publication) :
+
+```bash
+cd mon-projet
+git submodule add https://github.com/SamirZebbouche/ai-core .ai-core
+git -C .ai-core checkout v1.0.0      # ÉPINGLE un tag de version — jamais 'main' en auto-follow
+
+mkdir -p conventions/contexts        # tes bounded contexts (PROJECT-LOCAL)
+#   crée conventions/contexts/<context>.md   (gabarit : .ai-core/conventions/contexts/README.md)
+
+.ai-core/tools/sync-ai               # génère CLAUDE.md, GEMINI.md, .github/* au ROOT (cœur + contexts)
+git add . && git commit -m "chore: add ai-core (méthode & conventions IA)"
+```
+
+Mettre à jour plus tard : `git -C .ai-core fetch --tags && git -C .ai-core checkout vX.Y.Z && ./.ai-core/tools/sync-ai`.
+
+**Option B — package** (si tu as npm/NuGet) : publie `ai-core` en package versionné, `npm i -D @samir/ai-core`,
+le sync lit `node_modules/@samir/ai-core/`. Plus propre (semver), un peu plus d'overhead.
+
+**Ce que ça crée dans ton projet :**
+
+| Élément | Provenance | Versionné où |
+|---------|-----------|--------------|
+| `.ai-core/` | submodule épinglé | le cœur partagé (ce repo) |
+| `conventions/contexts/*.md` | toi | **ton** projet (committé) |
+| `CLAUDE.md`, `GEMINI.md`, `.github/*` | générés par `sync-ai` | ton projet (en-tête `GÉNÉRÉ`) |
+
+> ⚠️ **`sync-ai` est pour l'instant une *spec*** ([`tools/sync-ai.md`](tools/sync-ai.md)), pas encore un script.
+> En attendant, pour **Claude** : un `CLAUDE.md` à la main avec des `@import` vers `.ai-core/conventions/*`
+> et `conventions/contexts/*` suffit (Claude résout les imports nativement).
+
 **Pour aller plus loin :** [`method.md`](conventions/method.md) (*comment* l'IA travaille) ·
 [`meta/architecture-principles.md`](conventions/meta/architecture-principles.md) (*le pourquoi*) ·
 [`tools/sync-ai.md`](tools/sync-ai.md) (la plomberie).
