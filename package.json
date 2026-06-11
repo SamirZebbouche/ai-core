@@ -1,0 +1,22 @@
+{
+  "name": "@samirzebbouche/ai-core",
+  "version": "0.1.0",
+  "description": "Méthode & conventions IA partagées — config hexagonale, protocole de délibération, principes d'archi. Adapters générés pour Claude / Copilot / Gemini.",
+  "type": "module",
+  "bin": {
+    "ai-core-sync": "tools/sync-ai.mjs"
+  },
+  "files": [
+    "conventions",
+    "templates",
+    "tools"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamirZebbouche/ai-core.git"
+  },
+  "license": "MIT"
+}

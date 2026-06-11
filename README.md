@@ -114,45 +114,38 @@ conventions/
 
 ```
 mon-projet/
-  ai-core/                 ← submodule OU package de CE repo, ÉPINGLÉ à une version
+  node_modules/@samirzebbouche/ai-core/   ← le cœur (devDependency, géré par npm)
   conventions/contexts/    ← PROPRE au projet, committé ici (billing.md, catalog.md…)
-  CLAUDE.md  GEMINI.md  .github/…   ← GÉNÉRÉS au root par `sync-ai` (cœur + contexts)
+  package.json             ← "ai-core": { "stacks": ["dotnet","react"] }   ← la finesse
+  CLAUDE.md  GEMINI.md  .github/…   ← GÉNÉRÉS au root par `npx ai-core-sync`
 ```
 
-L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version → les projets pull à leur
-rythme. *Extensibilité et interop, réalisées par le versioning Git.*
+L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version → `npm update` à ton rythme.
+*Extensibilité et interop, réalisées par le versioning npm.*
 
-### Importer `ai-core` dans un projet existant
-
-**Option A — submodule** (simple, sans infra de publication) :
+### Importer dans un projet existant
 
 ```bash
-cd mon-projet
-git submodule add https://github.com/SamirZebbouche/ai-core .ai-core
-git -C .ai-core checkout v0.1.0      # ÉPINGLE un tag de version — jamais 'main' en auto-follow
+npm i -D github:SamirZebbouche/ai-core#v0.1.0   # depuis GitHub (ou un registry privé)
 
-mkdir -p conventions/contexts        # tes bounded contexts (PROJECT-LOCAL)
-#   crée conventions/contexts/<context>.md   (gabarit : .ai-core/conventions/contexts/README.md)
+mkdir -p conventions/contexts                    # tes bounded contexts (project-local)
+#   crée conventions/contexts/<context>.md       (gabarit dans le package : conventions/contexts/README.md)
 
-node .ai-core/tools/sync-ai.mjs      # génère CLAUDE.md, GEMINI.md, .github/* au ROOT (cœur + contexts)
-git add . && git commit -m "chore: add ai-core (méthode & conventions IA)"
+npx ai-core-sync                                 # génère CLAUDE.md, GEMINI.md, .github/* au ROOT
+git add . && git commit -m "chore: add ai-core"
 ```
 
-Mettre à jour plus tard : `git -C .ai-core fetch --tags && git -C .ai-core checkout vX.Y.Z && node .ai-core/tools/sync-ai.mjs`.
+**Sélection des stacks (la « finesse ») — additive :** dans `package.json`,
+`"ai-core": { "stacks": ["dotnet", "react"] }` (ou `npx ai-core-sync --stacks dotnet,react`). Sans config →
+**toutes** les stacks. Ainsi un projet .NET ne traîne pas les règles React dans le contexte de l'IA.
 
-**Option B — package** (si tu as npm/NuGet) : publie `ai-core` en package versionné, `npm i -D @samir/ai-core`,
-le sync lit `node_modules/@samir/ai-core/`. Plus propre (semver), un peu plus d'overhead.
+**Mettre à jour :** `npm update @samirzebbouche/ai-core && npx ai-core-sync` (ou pointe un autre tag).
 
-**Ce que ça crée dans ton projet :**
-
-| Élément | Provenance | Versionné où |
-|---------|-----------|--------------|
-| `.ai-core/` | submodule épinglé | le cœur partagé (ce repo) |
-| `conventions/contexts/*.md` | toi | **ton** projet (committé) |
-| `CLAUDE.md`, `GEMINI.md`, `.github/*` | générés par `sync-ai` | ton projet (en-tête `GÉNÉRÉ`) |
-
-> ✅ **`sync-ai` est implémenté** (Node, zéro dépendance — [`tools/sync-ai.mjs`](tools/sync-ai.mjs)).
-> Lance-le après tout changement de `conventions/` ou `contexts/` (idéalement en **pre-commit / CI**).
+> ✅ **`sync-ai` implémenté** (Node, zéro dépendance — [`tools/sync-ai.mjs`](tools/sync-ai.mjs)). Relance-le
+> après tout changement de `conventions/` / `contexts/` ou de la sélection de stacks.
+>
+> *Cas dégénéré (Claude seul, sans Node) : submodule + `@import` `conventions/` à la main — mais tu perds
+> Copilot/Gemini, le sync et la sélection de stacks.*
 
 **Pour aller plus loin :** [`method.md`](conventions/method.md) (*comment* l'IA travaille) ·
 [`meta/architecture-principles.md`](conventions/meta/architecture-principles.md) (*le pourquoi*) ·
