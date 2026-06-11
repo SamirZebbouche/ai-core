@@ -28,6 +28,23 @@ const outDir = argVal('--out') ? resolve(projectDir, argVal('--out')) : projectD
 const contextsDir = join(projectDir, '.ai', 'contexts');
 const localCommandsDir = join(projectDir, '.ai', 'commands');
 
+// Garde-fou : une option inconnue (flag mal orthographié) NE DOIT PAS tomber en silence dans le sync
+// (qui écrit des fichiers). On échoue, avec une suggestion.
+const VALUE_FLAGS = new Set(['--out', '--models', '--stacks', '--commands']);
+const KNOWN_FLAGS = new Set([...VALUE_FLAGS, '--help', '-h', '--list', '--conventions', '--detect-config', '--detectConfig', '--detect', '--config']);
+for (let i = 0; i < args.length; i++) {
+  const a = args[i];
+  if (!a.startsWith('-')) continue; // valeur d'un flag, ou positionnel : ignoré
+  if (!KNOWN_FLAGS.has(a)) {
+    const bare = a.replace(/^-+/, '');
+    const sugg = [...KNOWN_FLAGS].find((k) => { const kb = k.replace(/^-+/, ''); return bare && (kb.startsWith(bare) || bare.startsWith(kb)); });
+    console.error(`Option inconnue : ${a}${sugg ? `  → voulais-tu dire ${sugg} ?` : ''}`);
+    console.error('Aide : npx ai-core-sync --help');
+    process.exit(1);
+  }
+  if (VALUE_FLAGS.has(a)) i++; // saute la valeur
+}
+
 const HEADER = "<!-- GÉNÉRÉ par ai-core/tools/sync-ai — n'édite PAS, édite le cœur (conventions/, commands/) -->\n";
 
 // --- IO helpers ---

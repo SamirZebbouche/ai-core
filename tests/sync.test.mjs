@@ -166,6 +166,16 @@ test('--conventions : liste les conventions injectées (cœur) ET repère les do
   clean(dir);
 });
 
+test('garde-fou : une option inconnue échoue (ne lance PAS le sync) et suggère', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  const r = spawnSync(process.execPath, [SYNC, '--convention'], { cwd: dir, encoding: 'utf8' }); // typo
+  assert.notEqual(r.status, 0, 'une option inconnue doit faire échouer');
+  assert.match(r.stderr, /inconnue/i, 'doit signaler l\'option inconnue');
+  assert.match(r.stderr, /--conventions/, 'doit suggérer --conventions');
+  assert.ok(!existsSync(join(dir, 'CLAUDE.md')), 'le sync ne doit PAS avoir écrit de fichier');
+  clean(dir);
+});
+
 test('aide : --help imprime l\'usage ; --detect-config affiche le bloc package.json', () => {
   const a = sync(['--help']);
   assert.match(a.out, /Usage/, '--help doit imprimer l\'usage');
