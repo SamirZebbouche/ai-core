@@ -1,0 +1,92 @@
+name: CI
+
+# Garde-fou du cœur partagé : toute PR de ratification (AI propose → humain ratifie) doit passer au vert.
+# ai-core est un package Node zéro-dépendance : pas de build, pas de Docker, pas de déploiement.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: Tests & smoke (Node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: ['18', '20', '22']
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ matrix.node }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: Tests (runner intégré de Node, zéro dépendance)
+        run: npm test
+
+      - name: Smoke — catalogue, aide, config
+        run: |
+          node tools/sync-ai.mjs --list
+          node tools/sync-ai.mjs --help
+          node tools/sync-ai.mjs --config
+
+      - name: Smoke — génération sans crash (3 modèles)
+        run: |
+          node tools/sync-ai.mjs --out .ci-out --models anthropic,gemini,copilot
+          test -f .ci-out/CLAUDE.md
+          test -f .ci-out/GEMINI.md
+          test -f .ci-out/.github/copilot-instructions.md
+          test -f .ci-out/.claude/commands/deliberate.md
+          test -f .ci-out/.gemini/commands/deliberate.toml
+
+  package:
+    name: Package — ship que l'utile
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm pack — tests/ et sorties ne doivent PAS être publiés
+        run: |
+          npm pack --dry-run 2>&1 | tee pack.log
+          if grep -Eq 'tests/|\.sync-out|\.ci-out|\.github/workflows' pack.log; then
+            echo "::error::Fichiers indésirables dans le package (voir pack.log)"; exit 1
+          fi
+          echo "Package OK — seuls conventions/ commands/ templates/ tools/ (+ README/HOWTO) sont publiés."
+
+  # Deliver = publier la version. Pas de "deploy" : ai-core est une librairie consommée, pas une app déployée.
+  deliver:
+    name: Deliver — release sur tag v*
+    needs: [test, package]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # créer la GitHub Release
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: GitHub Release (notes auto-générées)
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --title "$GITHUB_REF_NAME" --verify-tag || echo "Release déjà existante — ok"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node (registre npm) — si NPM_TOKEN configuré
+        if: ${{ env.NPM_TOKEN != '' }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: npm publish — si NPM_TOKEN configuré (sinon l'install via github: suffit)
+        if: ${{ env.NPM_TOKEN != '' }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ env.NPM_TOKEN }}

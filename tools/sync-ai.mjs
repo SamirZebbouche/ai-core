@@ -207,6 +207,7 @@ function assembleCommand(dir) {
   const body = skeleton.includes('{{stacks}}') ? skeleton.replace('{{stacks}}', fragText) : (fragText ? `${skeleton}\n\n${fragText}` : skeleton);
   return { description: fmField(raw, 'description'), models: fmList(raw, 'models'), body };
 }
+let cmdWritten = 0;
 for (const name of pickedCommands) {
   const cmd = assembleCommand(byName.get(name));
   if (!cmd) continue;
@@ -215,6 +216,7 @@ for (const name of pickedCommands) {
   if (targets.includes('anthropic')) write(join(outDir, '.claude', 'commands', `${name}.md`), fm + HEADER + cmd.body + '\n');
   if (targets.includes('copilot')) write(join(outDir, '.github', 'prompts', `${name}.prompt.md`), fm + HEADER + cmd.body + '\n');
   if (targets.includes('gemini')) write(join(outDir, '.gemini', 'commands', `${name}.toml`), `# GÉNÉRÉ par ai-core — édite commands/${name}/\ndescription = ${JSON.stringify(cmd.description)}\nprompt = '''\n${cmd.body}\n'''\n`);
+  if (targets.length) cmdWritten++;
 }
 
 // --- orphelins : signés ai-core, plus écrits ce run → PROPOSER (jamais supprimer) ---
@@ -230,3 +232,4 @@ if (orphans.length) {
 }
 
 console.log('OK.');
+if (cmdWritten) console.log(`💡 ${cmdWritten} commande(s) (re)générée(s) — redémarre ton IDE / assistant pour qu'il recharge ses slash-commands.`);

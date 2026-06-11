@@ -2,5 +2,7 @@
 conventions/contexts/*
 !conventions/contexts/README.md
 
-# Sortie de self-test du sync (node tools/sync-ai.mjs --out .sync-out)
+# Sorties de self-test / CI du sync
 .sync-out/
+.ci-out/
+pack.log
