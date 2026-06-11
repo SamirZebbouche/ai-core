@@ -134,11 +134,11 @@ git -C .ai-core checkout v0.1.0      # ÉPINGLE un tag de version — jamais 'ma
 mkdir -p conventions/contexts        # tes bounded contexts (PROJECT-LOCAL)
 #   crée conventions/contexts/<context>.md   (gabarit : .ai-core/conventions/contexts/README.md)
 
-.ai-core/tools/sync-ai               # génère CLAUDE.md, GEMINI.md, .github/* au ROOT (cœur + contexts)
+node .ai-core/tools/sync-ai.mjs      # génère CLAUDE.md, GEMINI.md, .github/* au ROOT (cœur + contexts)
 git add . && git commit -m "chore: add ai-core (méthode & conventions IA)"
 ```
 
-Mettre à jour plus tard : `git -C .ai-core fetch --tags && git -C .ai-core checkout vX.Y.Z && ./.ai-core/tools/sync-ai`.
+Mettre à jour plus tard : `git -C .ai-core fetch --tags && git -C .ai-core checkout vX.Y.Z && node .ai-core/tools/sync-ai.mjs`.
 
 **Option B — package** (si tu as npm/NuGet) : publie `ai-core` en package versionné, `npm i -D @samir/ai-core`,
 le sync lit `node_modules/@samir/ai-core/`. Plus propre (semver), un peu plus d'overhead.
@@ -151,9 +151,8 @@ le sync lit `node_modules/@samir/ai-core/`. Plus propre (semver), un peu plus d'
 | `conventions/contexts/*.md` | toi | **ton** projet (committé) |
 | `CLAUDE.md`, `GEMINI.md`, `.github/*` | générés par `sync-ai` | ton projet (en-tête `GÉNÉRÉ`) |
 
-> ⚠️ **`sync-ai` est pour l'instant une *spec*** ([`tools/sync-ai.md`](tools/sync-ai.md)), pas encore un script.
-> En attendant, pour **Claude** : un `CLAUDE.md` à la main avec des `@import` vers `.ai-core/conventions/*`
-> et `conventions/contexts/*` suffit (Claude résout les imports nativement).
+> ✅ **`sync-ai` est implémenté** (Node, zéro dépendance — [`tools/sync-ai.mjs`](tools/sync-ai.mjs)).
+> Lance-le après tout changement de `conventions/` ou `contexts/` (idéalement en **pre-commit / CI**).
 
 **Pour aller plus loin :** [`method.md`](conventions/method.md) (*comment* l'IA travaille) ·
 [`meta/architecture-principles.md`](conventions/meta/architecture-principles.md) (*le pourquoi*) ·

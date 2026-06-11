@@ -1,3 +1,6 @@
 # Le cœur partagé ship contexts/ VIDE : les contextes sont PROJECT-LOCAL (apportés par chaque projet de dev).
 conventions/contexts/*
 !conventions/contexts/README.md
+
+# Sortie de self-test du sync (node tools/sync-ai.mjs --out .sync-out)
+.sync-out/
