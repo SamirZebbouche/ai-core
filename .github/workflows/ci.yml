@@ -85,7 +85,7 @@ jobs:
           node-version: '20'
           registry-url: 'https://registry.npmjs.org'
 
-      - name: npm publish — si NPM_TOKEN configuré (sinon l'install via github: suffit)
+      - name: npm publish — si NPM_TOKEN configuré (sinon, install via github suffit)
         if: ${{ env.NPM_TOKEN != '' }}
         run: npm publish --access public
         env:
