@@ -68,13 +68,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Couverture + seuils (lines 90 / funcs 85 / branches 70)
+      - name: Couverture + seuils (lines 95 / funcs 90 / branches 80)
         run: |
           node --test --experimental-test-coverage \
             --test-coverage-exclude='tests/**' \
-            --test-coverage-lines=90 \
-            --test-coverage-functions=85 \
-            --test-coverage-branches=70 2>&1 | tee cov.txt
+            --test-coverage-lines=95 \
+            --test-coverage-functions=90 \
+            --test-coverage-branches=80 2>&1 | tee cov.txt
       - name: Rapport de couverture (markdown → résumé du run)
         if: always()
         run: node scripts/coverage-report.mjs cov.txt
