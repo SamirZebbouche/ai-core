@@ -31,7 +31,7 @@ const localCommandsDir = join(projectDir, '.ai', 'commands');
 // Garde-fou : une option inconnue (flag mal orthographié) NE DOIT PAS tomber en silence dans le sync
 // (qui écrit des fichiers). On échoue, avec une suggestion.
 const VALUE_FLAGS = new Set(['--out', '--models', '--stacks', '--commands']);
-const KNOWN_FLAGS = new Set([...VALUE_FLAGS, '--help', '-h', '--list', '--conventions', '--import-commands', '--detect-config', '--detectConfig', '--detect', '--config']);
+const KNOWN_FLAGS = new Set([...VALUE_FLAGS, '--help', '-h', '--list', '--conventions', '--consolidate', '--import-commands', '--detect-config', '--detectConfig', '--detect', '--config']);
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith('-')) continue; // valeur d'un flag, ou positionnel : ignoré
@@ -126,7 +126,7 @@ Options
   --detect-config  AFFICHE le bloc "ai-core" suggéré (lecture seule, stacks auto-détectées)
   --config         ÉCRIT/met à jour "ai-core" dans package.json (ADDITIF : ajoute les stacks détectées, garde tes models)
   --conventions    liste les conventions injectées (transparence) + repère tes docs de convention (lexique, ADR…)
-  --import-commands  aspire tes commandes natives (.claude/commands, .github/prompts) vers .ai/commands/
+  --consolidate    consolide tes commandes natives éparpillées (.claude/commands, .github/prompts) en UNE source .ai/commands/
   --help           cette aide
 
 Config (package.json)
@@ -193,8 +193,9 @@ if (args.includes('--list')) {
   process.exit(0);
 }
 
-if (args.includes('--import-commands')) {
-  // Aspire les commandes natives (NON générées par ai-core) vers la source neutre .ai/commands/.
+if (args.includes('--consolidate') || args.includes('--import-commands')) {
+  // CONSOLIDE les commandes natives éparpillées par outil (NON générées par ai-core) en UNE source neutre
+  // .ai/commands/ — rassemble + dédoublonne (ex. check.md de Claude + check.prompt.md de Copilot → 1 source).
   const sources = [[join(projectDir, '.claude', 'commands'), '.md'], [join(projectDir, '.github', 'prompts'), '.prompt.md']];
   const imported = [], skipped = [], seen = new Set();
   for (const [dir, suf] of sources) {
@@ -209,7 +210,7 @@ if (args.includes('--import-commands')) {
       imported.push(`${name}  ←  ${rel(p)}`);
     }
   }
-  console.log(imported.length ? 'Commandes importées dans .ai/commands/ :' : 'Aucune commande native à importer (.claude/commands/, .github/prompts/).');
+  console.log(imported.length ? 'Commandes consolidées dans .ai/commands/ :' : 'Aucune commande native à consolider (.claude/commands/, .github/prompts/).');
   for (const i of imported) console.log('  + ' + i);
   if (skipped.length) console.log('Déjà présentes (non écrasées) : ' + skipped.join(', '));
   if (imported.length) console.log('→ Décompose-les en fragments `<stack>.md` si multi-techno, puis : npx ai-core-sync');
