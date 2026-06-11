@@ -1,6 +1,7 @@
 # HOWTO — brancher `ai-core` sur un projet
 
-> Tu ne gères qu'**UN dossier** : `.ai/`. Le reste est **généré** (gitignoré) ou **géré par npm**.
+> Tu gères **`.ai/contexts/`** (tes règles) + ta **zone libre** dans `CLAUDE.md`/`GEMINI.md`. ai-core ne
+> réécrit qu'un **bloc balisé** ; le cœur vit dans `node_modules` (npm).
 > *(Le « pourquoi » est dans [README.md](README.md) ; ici, juste les gestes.)*
 
 ## 1. Installer (une fois)
@@ -16,22 +17,30 @@ Dans **`package.json`** — choisis tes **outils** + **stacks**, et auto-régén
   "ai-core": {
     "tools":  ["claude", "copilot"],   // quels assistants générer (sinon : tous)
     "stacks": ["dotnet", "react"]       // quelles stacks inclure — additive (sinon : toutes)
-  },
-  "scripts": { "postinstall": "ai-core-sync" }   // régénère les adapters à chaque npm install
+  }
 }
 ```
 
 > Un shop **Claude-only** met `"tools": ["claude"]` → pas de `GEMINI.md` ni `.github/` qui polluent.
+> Optionnel — auto-rafraîchir le bloc à chaque install : `"scripts": { "postinstall": "ai-core-sync" }`.
 
-Dans **`.gitignore`** — les adapters générés ne polluent pas le repo :
+### Souplesse — zone managée vs zone libre
 
-```gitignore
-# ai-core — adapters générés (régénérés par `npx ai-core-sync` / postinstall)
-/CLAUDE.md
-/GEMINI.md
-/.github/copilot-instructions.md
-/.github/instructions/
+Les adapters (`CLAUDE.md`, `GEMINI.md`, `.github/copilot-instructions.md`) sont **committés** (pas
+gitignorés). Le sync ne réécrit **que** le bloc balisé :
+
+```markdown
+# CLAUDE.md
+Tes instructions PROJET, à la main.            ← zone LIBRE : le sync n'y touche JAMAIS
+
+<!-- ai-core:start — zone GÉNÉRÉE -->
+… méthode + conventions + stacks + contexts …  ← seule zone réécrite
+<!-- ai-core:end -->
 ```
+
+Tu places le bloc où tu veux ; tes ajouts au-dessus/au-dessous sont **préservés** à chaque re-sync.
+*(Instructions Copilot manuelles : ajoute TON propre `.github/instructions/<x>.instructions.md` — le sync
+ne touche que les fichiers qu'il génère.)*
 
 ## 2. Écrire tes bounded contexts (le seul vrai travail)
 
@@ -70,7 +79,7 @@ C'est tout. Claude / Copilot / Gemini lisent désormais **la même méthode** + 
 | changer un contexte | édite `.ai/contexts/*.md` → `npx ai-core-sync` |
 | changer de stacks | édite `package.json` `"ai-core".stacks` → `npx ai-core-sync` |
 | changer d'assistants | édite `package.json` `"ai-core".tools` → `npx ai-core-sync` |
-| mettre à jour le cœur | `npm update @samirzebbouche/ai-core` (le `postinstall` régénère) |
+| mettre à jour le cœur | `npm update @samirzebbouche/ai-core` → `npx ai-core-sync` |
 | proposer une règle au cœur | PR sur le repo `ai-core` → ratification → bump |
 
 ## Ce qui vit où (footprint minimal)
@@ -80,6 +89,7 @@ C'est tout. Claude / Copilot / Gemini lisent désormais **la même méthode** + 
 | **ton** travail | `.ai/contexts/*.md` | ✅ committé |
 | sélection de stacks | `package.json` `"ai-core".stacks` | ✅ |
 | le cœur partagé | `node_modules/@samirzebbouche/ai-core/` | ❌ (npm, épinglé) |
-| adapters | `CLAUDE.md` · `GEMINI.md` · `.github/*` | ❌ gitignorés (générés) |
+| adapters | `CLAUDE.md` · `GEMINI.md` · `.github/*` | ✅ committés (**bloc managé** + ta zone libre) |
 
-→ Dans ton repo, tu ne vois que **`.ai/`** + quelques lignes de `package.json`. Pollution minimale.
+→ Tu gères `.ai/contexts/` + ta zone libre. Les adapters au root sont **imposés par les outils** (ils les
+cherchent là) — mais ai-core n'en possède qu'un **bloc balisé**, jamais ta prose. Zéro écrasement.

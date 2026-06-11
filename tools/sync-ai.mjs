@@ -1,6 +1,10 @@
 #!/usr/bin/env node
 // tools/sync-ai.mjs — génère les adapters IA depuis le cœur conventions/ (+ contexts project-local).
-// Zéro dépendance. Idempotent. Adapters auto-suffisants (inline).
+// Zéro dépendance. Idempotent.
+//
+// SOUPLESSE — zone managée : dans CLAUDE.md / GEMINI.md / copilot-instructions.md, le sync ne réécrit
+// QUE le bloc entre <!-- ai-core:start --> et <!-- ai-core:end -->. Tout le reste (tes instructions
+// PROJET, à la main) est PRÉSERVÉ. Ces fichiers sont donc committés, pas gitignorés.
 //
 // Usage :
 //   npx ai-core-sync                          # racine d'un projet
@@ -25,6 +29,10 @@ const projectDir = process.cwd();
 const outDir = argVal('--out') ? resolve(projectDir, argVal('--out')) : projectDir;
 const contextsDir = join(projectDir, '.ai', 'contexts'); // project-local : un seul dossier caché .ai/
 
+// Marqueurs de zone managée. Le reste du fichier = zone LIBRE (jamais touchée).
+const MARK_START = '<!-- ai-core:start';
+const START_LINE = '<!-- ai-core:start — zone GÉNÉRÉE, ne pas éditer (édite conventions/ puis relance le sync) -->';
+const MARK_END = '<!-- ai-core:end -->';
 const HEADER = "<!-- GÉNÉRÉ par ai-core/tools/sync-ai — n'édite PAS ce fichier, édite conventions/ -->\n";
 
 // --- helpers ---
@@ -40,6 +48,22 @@ const headerAfterFrontmatter = (content) => {
   const m = content.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n)/);
   return m ? m[1] + HEADER + content.slice(m[1].length) : HEADER + content;
 };
+
+// Écrit/rafraîchit UNIQUEMENT le bloc managé ; préserve la zone libre de l'utilisateur.
+function writeManaged(path, bodyText, title) {
+  const block = `${START_LINE}\n${bodyText}\n${MARK_END}`;
+  if (!existsSync(path)) {
+    const scaffold = `# ${title}\n\n<!-- Zone LIBRE : tes instructions PROJET ici (au-dessus / au-dessous du bloc). ai-core ne gère QUE le bloc ci-dessous. -->\n\n`;
+    write(path, scaffold + block + '\n');
+    return;
+  }
+  const existing = read(path);
+  const s = existing.indexOf(MARK_START);
+  const e = existing.indexOf(MARK_END);
+  if (s >= 0 && e > s) { write(path, existing.slice(0, s) + block + existing.slice(e + MARK_END.length)); return; }
+  const sep = existing.endsWith('\n') ? '\n' : '\n\n'; // pas de marqueurs : on AJOUTE (manuel préservé)
+  write(path, existing + sep + block + '\n');
+}
 
 // --- config projet (lue une fois) : package.json "ai-core": { stacks, tools } ---
 let _cfg;
@@ -91,15 +115,16 @@ const tools = pickTools();
 console.log(`ai-core sync → ${posix(relative(projectDir, outDir)) || '.'}`);
 console.log(`  outils : ${tools.join(', ') || '—'}  ·  stacks : ${core.stacks.map((f) => basename(f, '.md')).join(', ') || '—'}  ·  contexts : ${contexts.length}`);
 
-// --- adapters inline (auto-suffisants : robustes au clone, indépendants du chemin du cœur) ---
+// --- corps inline (auto-suffisant : robuste au clone, indépendant du chemin du cœur) ---
 const inline = (files) => files.map((f) => stripFrontmatter(read(f)).trim()).join('\n\n---\n\n');
 const body = inline([core.method, core.global, ...core.meta, ...core.stacks, ...contexts]);
 
-if (tools.includes('claude')) write(join(outDir, 'CLAUDE.md'), HEADER + '# CLAUDE.md\n\n' + body + '\n');
-if (tools.includes('gemini')) write(join(outDir, 'GEMINI.md'), HEADER + '# GEMINI.md\n\n' + body + '\n');
+// Fichiers "manuel + managé" : on ne réécrit que le bloc balisé.
+if (tools.includes('claude')) writeManaged(join(outDir, 'CLAUDE.md'), body, 'CLAUDE.md');
+if (tools.includes('gemini')) writeManaged(join(outDir, 'GEMINI.md'), body, 'GEMINI.md');
 if (tools.includes('copilot')) {
-  // main inline + instructions scopées (frontmatter applyTo conservé)
-  write(join(outDir, '.github', 'copilot-instructions.md'), HEADER + '# Copilot Instructions\n\n' + inline([core.global, core.method, ...core.meta]) + '\n');
+  writeManaged(join(outDir, '.github', 'copilot-instructions.md'), inline([core.global, core.method, ...core.meta]), 'Copilot Instructions');
+  // Instructions scopées : 1:1 avec un fichier du cœur → entièrement générées (manuel = ajoute TON propre *.instructions.md).
   for (const f of [...core.stacks, ...contexts]) {
     write(join(outDir, '.github', 'instructions', `${basename(f, '.md')}.instructions.md`), headerAfterFrontmatter(read(f)));
   }
