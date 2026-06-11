@@ -37,13 +37,16 @@
 
 - **Duplication des commandes par modèle** : aucun outil ne lit-à-travers une référence → **recopies forcées** (mais d'**UNE source** → sans drift). Symlinks non viables (Windows/git/assemblage multi-fichiers). On est « condamné » au moins-pire propre.
 - **Valeur de `.ai/commands/` (et de `--consolidate`) conditionnelle** : utile en **multi-LLM** (une source → N copies sans drift) **ou** pour l'**additif** (fragments = dossier obligatoire). En **mono-LLM + commande simple** → indirection pure ; autant garder `.claude/commands/` à la main. ai-core ne force pas. *(Le « réemploi » est à la génération, pas à la lecture.)*
-- **Additif par techno = concern du CŒUR uniquement** : les fragments `<stack>.md` ne valent que pour une commande *généraliste réutilisée sur des projets à stacks variées* (`commands/` cœur, qui s'adapte). Une commande **project-local** a des stacks **fixes** → **flat** (pas de fragments) ; `--consolidate` produit déjà du flat, **pas besoin de décomposer**. ⚠️ **Aujourd'hui aucune commande cœur → le moteur `{{stacks}}` est dormant** → décider : **garder** (prêt pour un skill cœur) ou **simplifier** (YAGNI).
+- **Additif par techno (fragments `<stack>.md`) — DEUX usages distincts** :
+  1. **organisation modulaire** d'une commande **multi-techno** (chaque partie stack-spécifique a sa spécificité — ex. `/check` = `dotnet.md` avec le fix `BaseOutputPath` + `react.md` avec vitest). **Vaut AUSSI en project-local** (pas que le cœur). C'est un **découpage délibéré** que l'auteur fait.
+  2. **adaptation** d'une commande **généraliste** à des projets à stacks variées (concern du cœur).
+  → C'est **distinct de `--consolidate`** (qui importe **flat + opaque**, sans décomposer). Le moteur `{{stacks}}` **n'est pas dormant** : `/check` l'utilise. *(Correction d'une capture YAGNI trop hâtive.)*
 - **Pas d'oracle de design** : la méthode (délibération) est *injectée*, pas *garantie* — seul l'humain rate les décisions. L'oracle (tests/build) ne couvre que l'implémentation.
 - **Pointeur non uniforme** : la structure diffère selon le LLM (Claude tout en un / Copilot scopé) → un renvoi valide chez l'un est mort chez l'autre. Réponse : **auto-suffisance** (voir 🔜).
 
 ## 🎯 Adoption cvGenerator (le terrain réel)
 
-- [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` → **flat suffit** (stacks fixes du projet ; pas de décomposition en fragments).
+- [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` (flat) → **puis décomposer** `/check` & `/watch` en fragments `dotnet.md` / `react.md` (chacun sa spécificité).
 - [ ] Context-pointeurs : `.ai/contexts/lexique.md` (→ `docs/LEXIQUE.md`), `.ai/contexts/adr.md` (→ `docs/adr/`).
 - [ ] Règles projet (couplage back/front, design-system, testing) → `.ai/contexts/`.
 
