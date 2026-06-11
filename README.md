@@ -152,7 +152,7 @@ projet) est préservée. **Pas-à-pas → [HOWTO.md](HOWTO.md).**
 
 ```bash
 npm test        # lance la suite (runner intégré de Node — tests/sync.test.mjs)
-npm run sync    # génère les adapters en local (= ce que fait `npx ai-core-sync` chez le consommateur)
+npm run sync    # démo : génère dans .sync-out/ (gitignoré). Chez le consommateur, `npx ai-core-sync` génère au root.
 ```
 
 Contribuer une règle = **PR sur ce repo** (= la ratification : l'IA propose, l'humain ratifie, bump de version).
