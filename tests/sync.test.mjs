@@ -85,3 +85,13 @@ test('intégrité des marqueurs : un bloc malformé est ignoré (pas de duplicat
   assert.equal((after.match(/ai-core:start/g) || []).length, 1, 'ne doit pas ajouter un 2e bloc');
   clean(dir);
 });
+
+test('lisibilité : sommaire + provenance présents, uniformément (Claude + Copilot)', () => {
+  const { dir } = sync([]); // tous outils, toutes stacks
+  const claude = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+  assert.match(claude, /## Sommaire/, 'sommaire absent de CLAUDE.md');
+  assert.match(claude, /─────/, 'marqueurs de provenance absents de CLAUDE.md');
+  const copilot = readFileSync(join(dir, '.github', 'copilot-instructions.md'), 'utf8');
+  assert.match(copilot, /## Sommaire/, 'sommaire absent de copilot-instructions (interop cassée)');
+  clean(dir);
+});

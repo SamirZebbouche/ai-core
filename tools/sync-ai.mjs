@@ -135,15 +135,21 @@ if (collide.length) console.warn('  ⚠️ collision stack/context (même nom �
 console.log(`ai-core sync → ${posix(relative(projectDir, outDir)) || '.'}`);
 console.log(`  outils : ${tools.join(', ') || '—'}  ·  stacks : ${core.stacks.map((f) => basename(f, '.md')).join(', ') || '—'}  ·  contexts : ${contexts.length}`);
 
-// --- corps inline (auto-suffisant : robuste au clone, indépendant du chemin du cœur) ---
-const inline = (files) => files.map((f) => stripFrontmatter(read(f)).trim()).join('\n\n---\n\n');
-const body = inline([core.method, core.global, ...core.meta, ...core.stacks, ...contexts]);
+// --- corps inline (auto-suffisant) + LISIBILITÉ : sommaire en tête + provenance par section ---
+const firstH1 = (s) => { const m = s.match(/^#\s+(.+)$/m); return m ? m[1].trim() : ''; };
+const assemble = (files) => {
+  const parts = files.map((f) => { const c = stripFrontmatter(read(f)).trim(); return { name: basename(f), title: firstH1(c) || basename(f), c }; });
+  const toc = parts.map((p) => `- ${p.title}`).join('\n');
+  const sections = parts.map((p) => `<!-- ───── ${p.name} ───── -->\n${p.c}`).join('\n\n');
+  return `## Sommaire (généré — ne pas éditer)\n${toc}\n\n${sections}`;
+};
+const body = assemble([core.method, core.global, ...core.meta, ...core.stacks, ...contexts]);
 
 // Fichiers "manuel + managé" : on ne réécrit que le bloc balisé.
 if (tools.includes('claude')) writeManaged(join(outDir, 'CLAUDE.md'), body, 'CLAUDE.md');
 if (tools.includes('gemini')) writeManaged(join(outDir, 'GEMINI.md'), body, 'GEMINI.md');
 if (tools.includes('copilot')) {
-  writeManaged(join(outDir, '.github', 'copilot-instructions.md'), inline([core.global, core.method, ...core.meta]), 'Copilot Instructions');
+  writeManaged(join(outDir, '.github', 'copilot-instructions.md'), assemble([core.global, core.method, ...core.meta]), 'Copilot Instructions');
   // Instructions scopées : 1:1 avec un fichier du cœur → entièrement générées (manuel = ajoute TON propre *.instructions.md).
   for (const f of [...core.stacks, ...contexts]) {
     write(join(outDir, '.github', 'instructions', `${basename(f, '.md')}.instructions.md`), headerAfterFrontmatter(read(f)));
