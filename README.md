@@ -127,7 +127,7 @@ rythme. *Extensibilité et interop, réalisées par le versioning Git.*
 ```bash
 cd mon-projet
 git submodule add https://github.com/SamirZebbouche/ai-core .ai-core
-git -C .ai-core checkout v1.0.0      # ÉPINGLE un tag de version — jamais 'main' en auto-follow
+git -C .ai-core checkout v0.1.0      # ÉPINGLE un tag de version — jamais 'main' en auto-follow
 
 mkdir -p conventions/contexts        # tes bounded contexts (PROJECT-LOCAL)
 #   crée conventions/contexts/<context>.md   (gabarit : .ai-core/conventions/contexts/README.md)
