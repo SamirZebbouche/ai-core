@@ -16,7 +16,7 @@ Dans **`package.json`** — choisis tes **modèles** + **stacks** (ou `npx ai-co
 {
   "ai-core": {
     "models": ["anthropic", "copilot"],   // assistants : anthropic, gemini, copilot (sinon : tous)
-    "stacks": ["dotnet", "react"]          // stacks à inclure — additive (sinon : toutes)
+    "stacks": ["dotnet", "react"]          // additive (sinon : auto-détectées, sinon aucune)
   }
 }
 ```

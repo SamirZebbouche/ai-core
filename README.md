@@ -137,7 +137,7 @@ projet) est préservée. **Pas-à-pas → [HOWTO.md](HOWTO.md).**
 **La « finesse » — trois axes, additifs (sans config → tout) :**
 - **Modèles** (`models` / `--models anthropic,copilot`) : ne génère que les adapters des assistants utilisés —
   un shop Claude-only n'a ni `GEMINI.md` ni `.github/` qui polluent (alias `claude`=`anthropic`).
-- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas les règles React.
+- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas React. **Défaut sain : auto-détectées (`.csproj`→dotnet, dep react→react…), jamais « toutes ».**
 - **Commandes** (`.ai/commands/<cmd>/`) : multi-techno, **assemblées additivement** par stack (ex. `/check` = back .NET + front React).
 
 Découvrir/configurer : `npx ai-core-sync --list` (catalogue) · `--config` (bloc package.json) · `--help`.

@@ -164,3 +164,17 @@ test('aide : --help imprime l\'usage ; --config suggère le bloc package.json', 
   assert.match(b.out, /"stacks"/, '--config doit proposer des stacks');
   clean(a.dir); clean(b.dir);
 });
+
+test('défaut sain : sans config ni techno détectée → AUCUNE stack (pas "toutes")', () => {
+  const { dir } = sync(['--models', 'copilot']); // dossier temp vide → rien à détecter
+  assert.ok(!existsSync(join(dir, '.github', 'instructions', 'dotnet.instructions.md')), 'aucune stack ne doit être injectée sans config ni détection');
+  clean(dir);
+});
+
+test('défaut sain : un .csproj présent → stack dotnet auto-détectée', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  writeFileSync(join(dir, 'app.csproj'), '<Project></Project>\n');
+  sync(['--models', 'copilot'], dir);
+  assert.ok(existsSync(join(dir, '.github', 'instructions', 'dotnet.instructions.md')), 'dotnet aurait dû être auto-détectée via .csproj');
+  clean(dir);
+});

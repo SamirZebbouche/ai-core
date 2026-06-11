@@ -70,6 +70,17 @@ function writeManaged(path, bodyText, title) {
 let _cfg;
 const projectCfg = () => { if (_cfg !== undefined) return _cfg; _cfg = {}; const pkg = join(projectDir, 'package.json'); if (existsSync(pkg)) { try { _cfg = JSON.parse(read(pkg))['ai-core'] || {}; } catch { /* */ } } return _cfg; };
 
+// Détection best-effort des stacks du projet (défaut sain ET --config). JAMAIS "toutes" : détecté, sinon rien.
+function detectStacks() {
+  const hasF = (dir, t) => { try { return readdirSync(dir).some(t); } catch { return false; } };
+  const found = [];
+  if ([projectDir, join(projectDir, 'src')].some((d) => hasF(d, (f) => f.endsWith('.csproj') || f.endsWith('.sln')))) found.push('dotnet');
+  try { const pj = JSON.parse(read(join(projectDir, 'package.json'))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) found.push('react'); } catch { /* pas de package.json */ }
+  if (hasF(projectDir, (f) => f === 'pyproject.toml' || f === 'requirements.txt')) found.push('python');
+  if (hasF(projectDir, (f) => f === 'go.mod')) found.push('go');
+  return found;
+}
+
 // sélection générique : --flag > package.json > tout. `norm` normalise (alias).
 function pick(label, flag, cfgKey, available, norm = (x) => x) {
   let names = null;
@@ -91,7 +102,7 @@ Usage : npx ai-core-sync [options]
 
 Options
   --models a,b     modèles cibles : anthropic, gemini, copilot   (défaut : tous ; alias claude=anthropic)
-  --stacks a,b     stacks à inclure                              (défaut : toutes celles du cœur)
+  --stacks a,b     stacks à inclure                              (défaut : auto-détectées, sinon aucune)
   --commands a,b   commandes à générer                           (défaut : toutes)
   --out DIR        dossier de sortie                             (défaut : racine du projet)
   --list           catalogue : modèles / stacks / commandes disponibles
@@ -112,19 +123,13 @@ Seul le bloc <!-- ai-core:start … end --> est réécrit ; ta zone libre est pr
 
 // --- config suggérée (--config) : stacks auto-détectées, bloc prêt à coller ---
 if (args.includes('--config')) {
-  const hasF = (dir, t) => { try { return readdirSync(dir).some(t); } catch { return false; } };
-  const detected = [];
-  if ([projectDir, join(projectDir, 'src')].some((d) => hasF(d, (f) => f.endsWith('.csproj') || f.endsWith('.sln')))) detected.push('dotnet');
-  try { const pj = JSON.parse(read(join(projectDir, 'package.json'))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) detected.push('react'); } catch { /* pas de package.json */ }
-  if (hasF(projectDir, (f) => f === 'pyproject.toml' || f === 'requirements.txt')) detected.push('python');
-  if (hasF(projectDir, (f) => f === 'go.mod')) detected.push('go');
-  const stacks = detected.length ? detected : mdFiles(join(coreDir, 'stacks')).map((f) => basename(f, '.md'));
+  const detected = detectStacks();
   console.log('Config ai-core — colle ce bloc dans package.json :\n');
   console.log('  "ai-core": {');
   console.log(`    "models": ${JSON.stringify(MODELS)},`);
-  console.log(`    "stacks": ${JSON.stringify(stacks)}`);
+  console.log(`    "stacks": ${JSON.stringify(detected)}`);
   console.log('  }\n');
-  console.log(`Stacks ${detected.length ? 'auto-détectées : ' + detected.join(', ') : '(toutes celles du cœur)'} — ajuste à ton projet.`);
+  console.log(`Stacks ${detected.length ? 'auto-détectées : ' + detected.join(', ') : 'aucune détectée — ajoute les tiennes (npx ai-core-sync --list)'}.`);
   console.log('Modèles : anthropic, gemini, copilot — retire ceux que tu n\'utilises pas (alias claude=anthropic).');
   console.log('Optionnel : "scripts": { "postinstall": "ai-core-sync" }   ·   Aide : npx ai-core-sync --help');
   process.exit(0);
@@ -150,7 +155,7 @@ const requestedStacks = (() => {
   const f = argVal('--stacks');
   if (f) return f.split(',').map((s) => s.trim()).filter(Boolean);
   if (Array.isArray(projectCfg().stacks)) return projectCfg().stacks;
-  return allStacks.map((x) => basename(x, '.md')); // défaut : toutes les stacks du cœur
+  return detectStacks(); // défaut SAIN : détectées, sinon AUCUNE (jamais "toutes")
 })();
 const core = {
   method: join(coreDir, 'method.md'),
