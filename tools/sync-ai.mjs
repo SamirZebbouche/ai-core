@@ -137,9 +137,11 @@ console.log(`  outils : ${tools.join(', ') || '—'}  ·  stacks : ${core.stacks
 
 // --- corps inline (auto-suffisant) + LISIBILITÉ : sommaire en tête + provenance par section ---
 const firstH1 = (s) => { const m = s.match(/^#\s+(.+)$/m); return m ? m[1].trim() : ''; };
+// slug façon VSCode/GitHub : minuscules, espaces→-, ponctuation + balisage markdown retirés (accents gardés).
+const slugify = (h) => h.trim().toLowerCase().replace(/\s+/g, '-').replace(/[\[\]!\/'"#$%&()*+,.:;<=>?@\\^_{|}~`—·…]/g, '');
 const assemble = (files) => {
   const parts = files.map((f) => { const c = stripFrontmatter(read(f)).trim(); return { name: basename(f), title: firstH1(c) || basename(f), c }; });
-  const toc = parts.map((p) => `- ${p.title}`).join('\n');
+  const toc = parts.map((p) => `- [${p.title}](#${slugify(p.title)})`).join('\n');
   const sections = parts.map((p) => `<!-- ───── ${p.name} ───── -->\n${p.c}`).join('\n\n');
   return `## Sommaire (généré — ne pas éditer)\n${toc}\n\n${sections}`;
 };

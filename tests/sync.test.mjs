@@ -90,6 +90,7 @@ test('lisibilité : sommaire + provenance présents, uniformément (Claude + Cop
   const { dir } = sync([]); // tous outils, toutes stacks
   const claude = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
   assert.match(claude, /## Sommaire/, 'sommaire absent de CLAUDE.md');
+  assert.match(claude, /- \[.+\]\(#.+\)/, 'le sommaire doit être navigable (liens vers ancres)');
   assert.match(claude, /─────/, 'marqueurs de provenance absents de CLAUDE.md');
   const copilot = readFileSync(join(dir, '.github', 'copilot-instructions.md'), 'utf8');
   assert.match(copilot, /## Sommaire/, 'sommaire absent de copilot-instructions (interop cassée)');
