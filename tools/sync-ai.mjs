@@ -6,6 +6,9 @@
 // QUE le bloc entre <!-- ai-core:start --> et <!-- ai-core:end -->. Tout le reste (tes instructions
 // PROJET, à la main) est PRÉSERVÉ. Ces fichiers sont donc committés, pas gitignorés.
 //
+// SÛRETÉ — le sync ne supprime JAMAIS rien : il PROPOSE (orphelins), AVERTIT (collisions, marqueurs
+// malformés), et ignore ce qu'il ne peut pas réécrire sans risque.
+//
 // Usage :
 //   npx ai-core-sync                          # racine d'un projet
 //   ... --out DIR                              # sortie custom (self-test)
@@ -37,19 +40,23 @@ const HEADER = "<!-- GÉNÉRÉ par ai-core/tools/sync-ai — n'édite PAS ce fic
 
 // --- helpers ---
 const read = (p) => readFileSync(p, 'utf8');
+const rel = (p) => posix(relative(outDir, p)) || basename(p);
 const mdFiles = (dir) => existsSync(dir)
   ? readdirSync(dir).filter((f) => f.endsWith('.md') && f.toLowerCase() !== 'readme.md').sort()
   : [];
 const stripFrontmatter = (s) => s.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, '');
 const posix = (p) => p.split('\\').join('/');
 const ensureDir = (p) => { if (!existsSync(p)) mkdirSync(p, { recursive: true }); };
-const write = (p, content) => { ensureDir(dirname(p)); writeFileSync(p, content); console.log('  →', posix(relative(outDir, p)) || basename(p)); };
+const WRITTEN = new Set(); // chemins écrits CE run (pour repérer les orphelins ensuite)
+const write = (p, content) => { ensureDir(dirname(p)); writeFileSync(p, content); WRITTEN.add(resolve(p)); console.log('  →', rel(p)); };
 const headerAfterFrontmatter = (content) => {
   const m = content.match(/^(---\r?\n[\s\S]*?\r?\n---\r?\n)/);
   return m ? m[1] + HEADER + content.slice(m[1].length) : HEADER + content;
 };
+// "signé ai-core" = généré par un sync (header ou bloc managé) — sert à distinguer un orphelin d'un fichier MANUEL.
+const aiSigned = (p) => { try { const s = read(p); return s.includes('ai-core:start') || s.includes('par ai-core/tools'); } catch { return false; } };
 
-// Écrit/rafraîchit UNIQUEMENT le bloc managé ; préserve la zone libre de l'utilisateur.
+// Écrit/rafraîchit UNIQUEMENT le bloc managé ; préserve la zone libre. Marqueurs malformés → AVERTIT et IGNORE.
 function writeManaged(path, bodyText, title) {
   const block = `${START_LINE}\n${bodyText}\n${MARK_END}`;
   if (!existsSync(path)) {
@@ -58,11 +65,20 @@ function writeManaged(path, bodyText, title) {
     return;
   }
   const existing = read(path);
-  const s = existing.indexOf(MARK_START);
-  const e = existing.indexOf(MARK_END);
-  if (s >= 0 && e > s) { write(path, existing.slice(0, s) + block + existing.slice(e + MARK_END.length)); return; }
-  const sep = existing.endsWith('\n') ? '\n' : '\n\n'; // pas de marqueurs : on AJOUTE (manuel préservé)
-  write(path, existing + sep + block + '\n');
+  const nStart = (existing.match(/<!-- ai-core:start/g) || []).length;
+  const nEnd = (existing.match(/<!-- ai-core:end -->/g) || []).length;
+  if (nStart === 0 && nEnd === 0) { // pas de bloc → on AJOUTE (manuel préservé)
+    const sep = existing.endsWith('\n') ? '\n' : '\n\n';
+    write(path, existing + sep + block + '\n');
+    return;
+  }
+  if (nStart !== 1 || nEnd !== 1) {
+    console.warn(`  ⚠️ ${rel(path)} : marqueurs ai-core malformés (${nStart} start / ${nEnd} end) — IGNORÉ. Garde UN start + UN end.`);
+    return;
+  }
+  const s = existing.indexOf(MARK_START), e = existing.indexOf(MARK_END);
+  if (e < s) { console.warn(`  ⚠️ ${rel(path)} : 'end' avant 'start' — IGNORÉ.`); return; }
+  write(path, existing.slice(0, s) + block + existing.slice(e + MARK_END.length));
 }
 
 // --- config projet (lue une fois) : package.json "ai-core": { stacks, tools } ---
@@ -112,6 +128,10 @@ const core = {
 const contexts = mdFiles(contextsDir).map((f) => join(contextsDir, f));
 const tools = pickTools();
 
+// garde anti-collision : stack & context de MÊME nom → même *.instructions.md (le context écraserait le stack)
+const collide = core.stacks.map((f) => basename(f, '.md')).filter((n) => contexts.some((f) => basename(f, '.md') === n));
+if (collide.length) console.warn('  ⚠️ collision stack/context (même nom → même .instructions.md ; le context gagne) :', collide.join(', '));
+
 console.log(`ai-core sync → ${posix(relative(projectDir, outDir)) || '.'}`);
 console.log(`  outils : ${tools.join(', ') || '—'}  ·  stacks : ${core.stacks.map((f) => basename(f, '.md')).join(', ') || '—'}  ·  contexts : ${contexts.length}`);
 
@@ -128,6 +148,27 @@ if (tools.includes('copilot')) {
   for (const f of [...core.stacks, ...contexts]) {
     write(join(outDir, '.github', 'instructions', `${basename(f, '.md')}.instructions.md`), headerAfterFrontmatter(read(f)));
   }
+}
+
+// --- orphelins : générés par un ANCIEN sync, sans source/outil actuel. On PROPOSE, on NE supprime PAS. ---
+const orphans = [];
+const instrDir = join(outDir, '.github', 'instructions');
+if (existsSync(instrDir)) {
+  for (const f of readdirSync(instrDir).filter((f) => f.endsWith('.instructions.md'))) {
+    const p = join(instrDir, f);
+    if (!WRITTEN.has(resolve(p)) && aiSigned(p)) orphans.push(p);
+  }
+}
+const ADAPTERS = { claude: 'CLAUDE.md', gemini: 'GEMINI.md', copilot: join('.github', 'copilot-instructions.md') };
+for (const [t, relp] of Object.entries(ADAPTERS)) {
+  if (tools.includes(t)) continue; // outil dé-sélectionné : son adapter devient peut-être orphelin
+  const p = join(outDir, relp);
+  if (existsSync(p) && aiSigned(p)) orphans.push(p);
+}
+if (orphans.length) {
+  console.warn('  🧹 Orphelins (ancien sync, plus de source/outil) — à SUPPRIMER toi-même si voulu :');
+  for (const p of orphans) console.warn('     - ' + rel(p));
+  console.warn('     (ai-core ne supprime jamais seul ; vérifie ta zone libre avant.)');
 }
 
 console.log('OK.');

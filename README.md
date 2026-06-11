@@ -145,3 +145,15 @@ projet) est préservée. **Pas-à-pas → [HOWTO.md](HOWTO.md).**
 **Pour aller plus loin :** [`method.md`](conventions/method.md) (*comment* l'IA travaille) ·
 [`meta/architecture-principles.md`](conventions/meta/architecture-principles.md) (*le pourquoi*) ·
 [`tools/sync-ai.md`](tools/sync-ai.md) (la plomberie).
+
+### Développer / contribuer
+
+**Aucun build** — JS pur (ESM) + Markdown, **zéro dépendance**. Juste Node (≥ 18).
+
+```bash
+npm test        # lance la suite (runner intégré de Node — tests/sync.test.mjs)
+npm run sync    # génère les adapters en local (= ce que fait `npx ai-core-sync` chez le consommateur)
+```
+
+Contribuer une règle = **PR sur ce repo** (= la ratification : l'IA propose, l'humain ratifie, bump de version).
+Les `tests/` ne sont pas publiés dans le package (le champ `files` ne ship que `conventions/` `templates/` `tools/`).

@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Méthode & conventions IA partagées — config hexagonale, protocole de délibération, principes d'archi. Adapters générés pour Claude / Copilot / Gemini.",
   "type": "module",
+  "scripts": {
+    "sync": "node tools/sync-ai.mjs",
+    "test": "node --test"
+  },
   "bin": {
     "ai-core-sync": "tools/sync-ai.mjs"
   },
