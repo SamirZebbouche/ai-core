@@ -4,6 +4,17 @@
 > en tête. Coché = fait ; le reste = à arbitrer. Priorités : 🔜 court terme · 🟠 cœur (contenu, par PR)
 > · 💡 gros morceaux · 🔒 limites connues.
 
+## 📖 Glossaire (vocabulaire verrouillé — pour ne plus s'emmêler)
+
+| Terme | C'est… | Où |
+|---|---|---|
+| **Skill de base** | comportement **toujours actif** (la méthode), non invocable | `conventions/method.md` (inliné) |
+| **Convention** | règle **déclarative** (*quoi* respecter) | `conventions/` (cœur) + `.ai/contexts/` (projet) |
+| **Skill craft** | commande **généraliste invocable**, paramétrée par le projet | `commands/` (**cœur**) |
+| **Fragment** `<stack>.md` | partie **stack-spécifique** d'un skill craft multi-techno (additif) | dans un skill cœur |
+| **Commande project-local** | commande **bespoke**, **OPAQUE** (ai-core n'y touche pas) | `.ai/commands/` |
+| **`--consolidate`** | déplace les commandes natives → `.ai/commands/` + redistribue **verbatim** | CLI |
+
 ## ✅ Acquis (rappel d'orientation)
 
 - **Hexagonal** : cœur neutre `conventions/` + `commands/` → adapters **générés** (Claude / Copilot / Gemini).
