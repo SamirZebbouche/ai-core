@@ -1,4 +1,4 @@
-# 🧠 ai-core — Donner à l'IA la discipline d'un *craftsman*, et la partager
+# 🧠 ai-core — Donner à l'IA la discipline d'un *crafter*, et la partager
 
 *Comment on en est venus à formaliser une méthode de travail avec l'IA — par un détour inattendu par les mathématiques.*
 
