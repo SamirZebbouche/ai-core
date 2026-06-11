@@ -53,33 +53,29 @@ function writeManaged(path, body, title) {
 let _cfg;
 const projectCfg = () => { if (_cfg !== undefined) return _cfg; _cfg = {}; const pkg = join(projectDir, 'package.json'); if (existsSync(pkg)) { try { _cfg = JSON.parse(read(pkg))['ai-core'] || {}; } catch { /* */ } } return _cfg; };
 
-// Détection best-effort, AGNOSTIQUE du nommage et de la profondeur : UN passage RÉCURSIF PROFOND
-// (coût négligeable, 1× par run), patterns par techno. node_modules + dotdirs + dossiers "non-app"
-// (poc, examples…) sont exclus — sinon le scan profond ramasse les deps et les expérimentations.
-const NOISE = new Set([
-  // bruit de build / dépendances
-  'node_modules', 'dist', 'build', 'bin', 'obj', 'out', 'coverage', 'target', 'vendor', '__pycache__', 'venv', '.venv',
-  // dossiers "non-app" (expérimentation / annexes) — évite de prendre un poc/requirements.txt pour une stack
-  'poc', 'pocs', 'example', 'examples', 'sample', 'samples', 'demo', 'demos', 'docs', 'doc', 'sandbox', 'playground', 'spike', 'spikes', 'fixtures', 'e2e', 'tmp', 'temp',
-]);
+// Détection best-effort, HONNÊTE et JUSTIFIÉE : un passage RÉCURSIF PROFOND (coût négligeable, 1×),
+// patterns par techno. On exclut SEULEMENT les artefacts (node_modules, build, dotdirs) — PAS le code
+// de l'utilisateur (poc, examples…). On détecte tout, on cite la PREUVE, l'humain nettoie.
+const NOISE = new Set(['node_modules', 'dist', 'build', 'bin', 'obj', 'out', 'coverage', 'target', 'vendor', '__pycache__', 'venv', '.venv']);
+// → { stack: 'chemin/relatif/de/la/preuve' } : la 1re preuve rencontrée par stack (pour justifier).
 function detectStacks() {
-  const found = new Set();
+  const ev = {};
   const walk = (dir) => {
     let entries;
     try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return; }
     for (const e of entries) {
       if (e.isDirectory()) { if (!e.name.startsWith('.') && !NOISE.has(e.name)) walk(join(dir, e.name)); continue; }
-      const f = e.name;
-      if (/\.(csproj|vbproj|fsproj|sln)$/i.test(f)) found.add('dotnet');
-      else if (f === 'go.mod') found.add('go');
-      else if (f === 'Cargo.toml') found.add('rust');
-      else if (f === 'pom.xml' || f === 'build.gradle' || f === 'build.gradle.kts') found.add('java');
-      else if (f === 'pyproject.toml' || f === 'setup.py' || f === 'requirements.txt' || f === 'Pipfile') found.add('python');
-      else if (f === 'package.json') { try { const pj = JSON.parse(read(join(dir, f))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) found.add('react'); } catch { /* */ } }
+      const f = e.name, hit = (s) => { if (!ev[s]) ev[s] = posix(relative(projectDir, join(dir, f))) || f; };
+      if (/\.(csproj|vbproj|fsproj|sln)$/i.test(f)) hit('dotnet');
+      else if (f === 'go.mod') hit('go');
+      else if (f === 'Cargo.toml') hit('rust');
+      else if (f === 'pom.xml' || f === 'build.gradle' || f === 'build.gradle.kts') hit('java');
+      else if (f === 'pyproject.toml' || f === 'setup.py' || f === 'requirements.txt' || f === 'Pipfile') hit('python');
+      else if (f === 'package.json') { try { const pj = JSON.parse(read(join(dir, f))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) hit('react'); } catch { /* */ } }
     }
   };
   walk(projectDir);
-  return [...found];
+  return ev;
 }
 
 // --- CLI informatif (sortie immédiate) ---
@@ -111,13 +107,15 @@ Seul le bloc <!-- ai-core:start … end --> est réécrit ; ta zone libre est pr
 }
 
 if (args.includes('--detect-config') || args.includes('--detectConfig') || args.includes('--detect')) {
-  const detected = detectStacks();
+  const ev = detectStacks();
+  const detected = Object.keys(ev);
   console.log('Config ai-core suggérée (lecture seule — `--config` pour l\'écrire dans package.json) :\n');
   console.log('  "ai-core": {');
   console.log(`    "models": ${JSON.stringify(MODELS)},`);
   console.log(`    "stacks": ${JSON.stringify(detected)}`);
   console.log('  }\n');
-  console.log(`Stacks ${detected.length ? 'auto-détectées : ' + detected.join(', ') : 'aucune détectée — ajoute les tiennes (npx ai-core-sync --list)'}.`);
+  if (detected.length) { console.log('Détections (vérifie — retire ce qui n\'est pas une vraie stack du projet) :'); for (const s of detected) console.log(`  - ${s}  ←  ${ev[s]}`); }
+  else console.log('Aucune stack détectée — ajoute les tiennes (npx ai-core-sync --list).');
   console.log('Modèles : anthropic, gemini, copilot — retire ceux que tu n\'utilises pas (alias claude=anthropic).');
   process.exit(0);
 }
@@ -127,7 +125,8 @@ if (args.includes('--config')) {
   if (!existsSync(pkgPath)) { console.error('Pas de package.json à la racine — `npm init` d\'abord (ou `--detect-config` pour juste afficher).'); process.exit(1); }
   let raw, pkg;
   try { raw = read(pkgPath); pkg = JSON.parse(raw); } catch { console.error('package.json illisible / JSON invalide.'); process.exit(1); }
-  const detected = detectStacks();
+  const ev = detectStacks();
+  const detected = Object.keys(ev);
   const cfg = pkg['ai-core'];
   let msg;
   if (!cfg) {
@@ -144,6 +143,7 @@ if (args.includes('--config')) {
   const indent = (raw.match(/\n([ \t]+)"/) || [null, '  '])[1];
   writeFileSync(pkgPath, JSON.stringify(pkg, null, indent) + (raw.endsWith('\n') ? '\n' : ''));
   console.log(msg);
+  if (detected.length) { console.log('Détections (vérifie/nettoie dans package.json) :'); for (const s of detected) console.log(`  - ${s}  ←  ${ev[s]}`); }
   console.log('Puis : npx ai-core-sync');
   process.exit(0);
 }
@@ -166,7 +166,7 @@ const requestedStacks = (() => {
   const f = argVal('--stacks');
   if (f) return f.split(',').map((s) => s.trim()).filter(Boolean);
   if (Array.isArray(projectCfg().stacks)) return projectCfg().stacks;
-  return detectStacks(); // défaut SAIN : détectées, sinon AUCUNE (jamais "toutes")
+  return Object.keys(detectStacks()); // défaut SAIN : détectées, sinon AUCUNE (jamais "toutes")
 })();
 const core = {
   method: join(coreDir, 'method.md'),

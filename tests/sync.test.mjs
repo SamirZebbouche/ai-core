@@ -212,12 +212,13 @@ test('détection : variantes .NET en profondeur (.fsproj enfoui) → dotnet', ()
   clean(dir);
 });
 
-test('détection : un dossier d\'expérimentation (poc/) n\'est pas pris pour une stack', () => {
+test('détection HONNÊTE + JUSTIFIÉE : poc/requirements.txt → python, avec sa preuve (l\'humain nettoie)', () => {
   const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
   mkdirSync(join(dir, 'poc'), { recursive: true });
   writeFileSync(join(dir, 'poc', 'requirements.txt'), 'flask\n');
   const { out } = sync(['--detect-config'], dir);
-  assert.doesNotMatch(out, /python/, 'un requirements.txt dans poc/ ne doit pas déclencher python');
+  assert.match(out, /python/, 'python doit être détecté (honnêteté — on ne masque pas)');
+  assert.match(out, /poc\/requirements\.txt/, 'la détection doit CITER son fichier-preuve');
   clean(dir);
 });
 
