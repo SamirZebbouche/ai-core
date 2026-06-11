@@ -80,7 +80,7 @@ Une commande vit dans `.ai/commands/<nom>/` : un `command.md` (squelette) + des 
 ```
 
 → génère `.claude/commands/check.md` (+ `.github/prompts/`, `.gemini/commands/` selon `models`).
-**Une source → tous les formats, drift impossible.** `/deliberate` est fournie par le cœur.
+**Une source → tous les formats, drift impossible.** (La **délibération** n'est pas une commande : c'est un *skill de base*, toujours actif, dans `conventions/method.md`.)
 
 ## 3. Générer
 

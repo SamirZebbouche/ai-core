@@ -12,7 +12,7 @@
 - **Détection** récursive profonde + **justifiée** (cite le fichier-preuve).
 - **CLI transparence** : `--list` · `--detect-config` · `--config` (écrit, additif) · `--conventions` · `--consolidate` (rassemble les commandes natives) · `--help`.
 - **Conventions auto-suffisantes** (plus de lien-fichier mort).
-- **Commandes multi-techno additives** ; `/deliberate` au cœur.
+- **Commandes multi-techno additives** (project-local) ; la **délibération** est un *skill de base* (`method.md`), pas une commande.
 - **CI** multi-Node + **couverture gatée** (~84 % branches) + **deliver** sur tag. 38 tests.
 
 ## 🔜 Court terme
@@ -25,7 +25,7 @@
 
 - [ ] **Stack `react`** (`conventions/stacks/react.md`) — aujourd'hui `react` est sélectionnable mais ne « fait » rien (pas de convention cœur).
 - [ ] **Remonter la stack .NET riche** de cvGenerator (procédure rich-vs-anemic, DI) dans `stacks/dotnet.md`.
-- [ ] **Étoffer les skills généralistes** du cœur (il n'a que `/deliberate`).
+- [ ] **Skills généralistes du cœur** : aucun pour l'instant (la délibération est un *skill de base* dans `method.md`, pas une commande). En ajouter si vraiment project-agnostiques.
 
 ## 💡 Gros morceaux (plus tard)
 

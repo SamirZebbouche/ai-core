@@ -7,7 +7,7 @@
 ## Trois natures de contenu
 
 1. **Règle** (déclaratif : « fais ci, pas ça ») → `conventions/` (cœur) ou `.ai/contexts/` (projet).
-2. **Commande** (action invocable : `/check`, `/deliberate`) → `commands/` (cœur) ou `.ai/commands/` (projet).
+2. **Commande** (action invocable : `/check`, `/watch`…) → `.ai/commands/` (projet) ; le cœur peut fournir des skills *project-agnostiques*. ⚠️ Une **méthode toujours active** (délibération) n'est PAS une commande (sinon elle devient *opt-in*) → c'est un **skill de base** dans `method.md`.
 3. **Pointeur de référence** (Lexique, ADR, glossaire, specs) → un **context court qui LIE** la source de
    vérité (dans `docs/`…). **On pointe, on ne recopie pas** (sinon : drift + bloat dans chaque adapter).
 

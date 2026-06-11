@@ -100,11 +100,11 @@ test('lisibilité : sommaire navigable + provenance, uniformément (Claude + Cop
   clean(dir);
 });
 
-test('commande cœur : /deliberate est générée pour Claude', () => {
+test('la délibération est un SKILL DE BASE (dans les conventions, pas une commande)', () => {
   const { dir } = sync(['--models', 'anthropic']);
-  const f = join(dir, '.claude', 'commands', 'deliberate.md');
-  assert.ok(existsSync(f), '.claude/commands/deliberate.md manquant');
-  assert.match(readFileSync(f, 'utf8'), /réfuteur/i, 'le corps de /deliberate semble vide');
+  const claude = readFileSync(join(dir, 'CLAUDE.md'), 'utf8');
+  assert.match(claude, /délibère|réfuteur/i, 'la délibération doit être inlinée (skill de base via method.md)');
+  assert.ok(!existsSync(join(dir, '.claude', 'commands', 'deliberate.md')), 'la délibération ne doit PLUS être une commande');
   clean(dir);
 });
 
@@ -149,10 +149,10 @@ test('composition de techno : fragments composés selon les stacks (présence, o
   clean(dir);
 });
 
-test('catalogue : --list imprime les modèles et les commandes cœur', () => {
+test('catalogue : --list imprime les modèles et les stacks', () => {
   const { dir, out } = sync(['--list']);
   assert.match(out, /anthropic/, 'modèles absents du catalogue');
-  assert.match(out, /deliberate/, 'commandes cœur absentes du catalogue');
+  assert.match(out, /stacks/i, 'stacks absentes du catalogue');
   clean(dir);
 });
 
