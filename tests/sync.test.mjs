@@ -178,3 +178,14 @@ test('défaut sain : un .csproj présent → stack dotnet auto-détectée', () =
   assert.ok(existsSync(join(dir, '.github', 'instructions', 'dotnet.instructions.md')), 'dotnet aurait dû être auto-détectée via .csproj');
   clean(dir);
 });
+
+test('détection monorepo : react dans src/<front>/package.json est détecté (back .sln à la racine)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  writeFileSync(join(dir, 'app.sln'), '');
+  mkdirSync(join(dir, 'src', 'app-front'), { recursive: true });
+  writeFileSync(join(dir, 'src', 'app-front', 'package.json'), JSON.stringify({ dependencies: { react: '^18' } }));
+  const { out } = sync(['--config'], dir);
+  assert.match(out, /dotnet/, 'dotnet attendu (via .sln racine)');
+  assert.match(out, /react/, 'react attendu (via src/app-front/package.json)');
+  clean(dir);
+});

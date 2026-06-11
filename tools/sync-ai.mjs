@@ -54,13 +54,20 @@ let _cfg;
 const projectCfg = () => { if (_cfg !== undefined) return _cfg; _cfg = {}; const pkg = join(projectDir, 'package.json'); if (existsSync(pkg)) { try { _cfg = JSON.parse(read(pkg))['ai-core'] || {}; } catch { /* */ } } return _cfg; };
 
 function detectStacks() {
-  const hasF = (dir, t) => { try { return readdirSync(dir).some(t); } catch { return false; } };
-  const found = [];
-  if ([projectDir, join(projectDir, 'src')].some((d) => hasF(d, (f) => f.endsWith('.csproj') || f.endsWith('.sln')))) found.push('dotnet');
-  try { const pj = JSON.parse(read(join(projectDir, 'package.json'))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) found.push('react'); } catch { /* */ }
-  if (hasF(projectDir, (f) => f === 'pyproject.toml' || f === 'requirements.txt')) found.push('python');
-  if (hasF(projectDir, (f) => f === 'go.mod')) found.push('go');
-  return found;
+  // Scanne la racine + les dossiers front courants + les sous-dossiers directs de src/ (layout monorepo :
+  // back à la racine/.sln, front dans src/<projet>-front/package.json). On ne descend PAS dans node_modules.
+  const dirs = [projectDir, join(projectDir, 'src'), join(projectDir, 'backend'), join(projectDir, 'back'), join(projectDir, 'frontend'), join(projectDir, 'front'), join(projectDir, 'client'), join(projectDir, 'web')];
+  try { for (const d of readdirSync(join(projectDir, 'src'), { withFileTypes: true })) if (d.isDirectory() && d.name !== 'node_modules') dirs.push(join(projectDir, 'src', d.name)); } catch { /* pas de src/ */ }
+  const ls = (d) => { try { return readdirSync(d); } catch { return []; } };
+  const found = new Set();
+  for (const d of dirs) {
+    const files = ls(d);
+    if (files.some((f) => f.endsWith('.csproj') || f.endsWith('.sln'))) found.add('dotnet');
+    if (files.includes('go.mod')) found.add('go');
+    if (files.includes('pyproject.toml') || files.includes('requirements.txt')) found.add('python');
+    if (files.includes('package.json')) { try { const pj = JSON.parse(read(join(d, 'package.json'))); if ({ ...pj.dependencies, ...pj.devDependencies }.react) found.add('react'); } catch { /* */ } }
+  }
+  return [...found];
 }
 
 // --- CLI informatif (sortie immédiate) ---
