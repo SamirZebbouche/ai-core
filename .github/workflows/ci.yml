@@ -71,18 +71,13 @@ jobs:
       - name: Couverture + seuils (lines 90 / funcs 85 / branches 70)
         run: |
           node --test --experimental-test-coverage \
+            --test-coverage-exclude='tests/**' \
             --test-coverage-lines=90 \
             --test-coverage-functions=85 \
             --test-coverage-branches=70 2>&1 | tee cov.txt
-      - name: Résumé couverture
+      - name: Rapport de couverture (markdown → résumé du run)
         if: always()
-        run: |
-          {
-            echo "## Couverture (Node built-in, zéro dépendance)"
-            echo '```'
-            grep -E 'line %|sync-ai|all files' cov.txt || echo "(table non trouvée)"
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
+        run: node scripts/coverage-report.mjs cov.txt
 
   # Deliver = publier la version. Pas de "deploy" : ai-core est une librairie consommée, pas une app déployée.
   deliver:
