@@ -31,7 +31,7 @@ const localCommandsDir = join(projectDir, '.ai', 'commands');
 // Garde-fou : une option inconnue (flag mal orthographié) NE DOIT PAS tomber en silence dans le sync
 // (qui écrit des fichiers). On échoue, avec une suggestion.
 const VALUE_FLAGS = new Set(['--out', '--models', '--stacks', '--commands']);
-const KNOWN_FLAGS = new Set([...VALUE_FLAGS, '--help', '-h', '--list', '--conventions', '--detect-config', '--detectConfig', '--detect', '--config']);
+const KNOWN_FLAGS = new Set([...VALUE_FLAGS, '--help', '-h', '--list', '--conventions', '--import-commands', '--detect-config', '--detectConfig', '--detect', '--config']);
 for (let i = 0; i < args.length; i++) {
   const a = args[i];
   if (!a.startsWith('-')) continue; // valeur d'un flag, ou positionnel : ignoré
@@ -126,6 +126,7 @@ Options
   --detect-config  AFFICHE le bloc "ai-core" suggéré (lecture seule, stacks auto-détectées)
   --config         ÉCRIT/met à jour "ai-core" dans package.json (ADDITIF : ajoute les stacks détectées, garde tes models)
   --conventions    liste les conventions injectées (transparence) + repère tes docs de convention (lexique, ADR…)
+  --import-commands  aspire tes commandes natives (.claude/commands, .github/prompts) vers .ai/commands/
   --help           cette aide
 
 Config (package.json)
@@ -189,6 +190,29 @@ if (args.includes('--list')) {
   console.log('  commandes (cœur)   :', subdirs(coreCommandsDir).join(', ') || '—');
   console.log('  commandes (projet) :', subdirs(localCommandsDir).join(', ') || '—');
   console.log('  contexts (projet)  :', mdFiles(contextsDir).map((f) => basename(f, '.md')).join(', ') || '—');
+  process.exit(0);
+}
+
+if (args.includes('--import-commands')) {
+  // Aspire les commandes natives (NON générées par ai-core) vers la source neutre .ai/commands/.
+  const sources = [[join(projectDir, '.claude', 'commands'), '.md'], [join(projectDir, '.github', 'prompts'), '.prompt.md']];
+  const imported = [], skipped = [], seen = new Set();
+  for (const [dir, suf] of sources) {
+    if (!existsSync(dir)) continue;
+    for (const f of readdirSync(dir).filter((x) => x.endsWith(suf))) {
+      const name = f.slice(0, -suf.length);
+      const p = join(dir, f);
+      if (aiSigned(p) || seen.has(name)) continue; // générée par ai-core, ou déjà importée d'un autre outil
+      seen.add(name);
+      if (existsSync(join(localCommandsDir, name))) { skipped.push(name); continue; } // non destructif
+      write(join(localCommandsDir, name, 'command.md'), read(p));
+      imported.push(`${name}  ←  ${rel(p)}`);
+    }
+  }
+  console.log(imported.length ? 'Commandes importées dans .ai/commands/ :' : 'Aucune commande native à importer (.claude/commands/, .github/prompts/).');
+  for (const i of imported) console.log('  + ' + i);
+  if (skipped.length) console.log('Déjà présentes (non écrasées) : ' + skipped.join(', '));
+  if (imported.length) console.log('→ Décompose-les en fragments `<stack>.md` si multi-techno, puis : npx ai-core-sync');
   process.exit(0);
 }
 

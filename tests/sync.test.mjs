@@ -187,6 +187,21 @@ test('auto-suffisance : aucune convention ne référence un fichier-source du c�
   clean(dir);
 });
 
+test('--import-commands : aspire les commandes natives vers .ai/commands/ (skip les générées)', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'aicore-'));
+  mkdirSync(join(dir, '.claude', 'commands'), { recursive: true });
+  writeFileSync(join(dir, '.claude', 'commands', 'check.md'), '---\ndescription: ma check\n---\nLance les tests.\n');
+  writeFileSync(join(dir, '.claude', 'commands', 'deliberate.md'), '<!-- GÉNÉRÉ par ai-core/tools/sync-ai -->\nblabla\n');
+  sync(['--import-commands'], dir);
+  assert.ok(existsSync(join(dir, '.ai', 'commands', 'check', 'command.md')), 'check doit être importé');
+  assert.match(readFileSync(join(dir, '.ai', 'commands', 'check', 'command.md'), 'utf8'), /Lance les tests/);
+  assert.ok(!existsSync(join(dir, '.ai', 'commands', 'deliberate')), 'une commande générée ne doit pas être importée');
+  // non destructif : 2e run n'écrase pas
+  const r2 = sync(['--import-commands'], dir);
+  assert.match(r2.out, /Déjà présentes|Aucune/, 'non destructif au 2e passage');
+  clean(dir);
+});
+
 test('aide : --help imprime l\'usage ; --detect-config affiche le bloc package.json', () => {
   const a = sync(['--help']);
   assert.match(a.out, /Usage/, '--help doit imprimer l\'usage');
