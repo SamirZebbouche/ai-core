@@ -114,10 +114,10 @@ conventions/
 
 ```
 mon-projet/
-  node_modules/@samirzebbouche/ai-core/   ← le cœur (devDependency, géré par npm)
-  conventions/contexts/    ← PROPRE au projet, committé ici (billing.md, catalog.md…)
-  package.json             ← "ai-core": { "stacks": ["dotnet","react"] }   ← la finesse
-  CLAUDE.md  GEMINI.md  .github/…   ← GÉNÉRÉS au root par `npx ai-core-sync`
+  .ai/contexts/            ← TON seul dossier à gérer (bounded contexts, committé)
+  package.json             ← devDep + "ai-core": { "tools": [...], "stacks": [...] } + postinstall
+  node_modules/@samirzebbouche/ai-core/   ← le cœur (npm, caché)
+  CLAUDE.md  GEMINI.md  .github/…   ← GÉNÉRÉS (selon "tools"), gitignorés, régénérés au postinstall
 ```
 
 L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version → `npm update` à ton rythme.
@@ -126,26 +126,20 @@ L'IA propose une règle → **tu ratifies** (PR sur ce repo) → bump de version
 ### Importer dans un projet existant
 
 ```bash
-npm i -D github:SamirZebbouche/ai-core#v0.1.0   # depuis GitHub (ou un registry privé)
-
-mkdir -p conventions/contexts                    # tes bounded contexts (project-local)
-#   crée conventions/contexts/<context>.md       (gabarit dans le package : conventions/contexts/README.md)
-
-npx ai-core-sync                                 # génère CLAUDE.md, GEMINI.md, .github/* au ROOT
-git add . && git commit -m "chore: add ai-core"
+npm i -D github:SamirZebbouche/ai-core#v0.1.0     # GitHub, ou un registry privé
 ```
 
-**Sélection des stacks (la « finesse ») — additive :** dans `package.json`,
-`"ai-core": { "stacks": ["dotnet", "react"] }` (ou `npx ai-core-sync --stacks dotnet,react`). Sans config →
-**toutes** les stacks. Ainsi un projet .NET ne traîne pas les règles React dans le contexte de l'IA.
+Puis : choisis tes **outils** + **stacks** (`package.json` → `"ai-core": { "tools": ["claude"], "stacks": ["dotnet","react"] }`),
+écris tes bounded contexts dans **`.ai/contexts/`**, lance **`npx ai-core-sync`**. Les adapters générés sont
+**gitignorés + régénérés au `postinstall`** → ton repo ne montre que `.ai/`. **Pas-à-pas → [HOWTO.md](HOWTO.md).**
 
-**Mettre à jour :** `npm update @samirzebbouche/ai-core && npx ai-core-sync` (ou pointe un autre tag).
+**La « finesse » — deux axes, additifs (sans config → tout) :**
+- **Outils** (`tools` / `--tools claude,copilot`) : ne génère que les adapters des assistants que tu utilises —
+  un shop Claude-only n'a ni `GEMINI.md` ni `.github/` qui polluent.
+- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas les règles React dans le contexte de l'IA.
 
-> ✅ **`sync-ai` implémenté** (Node, zéro dépendance — [`tools/sync-ai.mjs`](tools/sync-ai.mjs)). Relance-le
-> après tout changement de `conventions/` / `contexts/` ou de la sélection de stacks.
->
 > *Cas dégénéré (Claude seul, sans Node) : submodule + `@import` `conventions/` à la main — mais tu perds
-> Copilot/Gemini, le sync et la sélection de stacks.*
+> Copilot/Gemini, le sync et la sélection.*
 
 **Pour aller plus loin :** [`method.md`](conventions/method.md) (*comment* l'IA travaille) ·
 [`meta/architecture-principles.md`](conventions/meta/architecture-principles.md) (*le pourquoi*) ·

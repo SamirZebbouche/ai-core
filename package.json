@@ -9,7 +9,8 @@
   "files": [
     "conventions",
     "templates",
-    "tools"
+    "tools",
+    "HOWTO.md"
   ],
   "engines": {
     "node": ">=18"
