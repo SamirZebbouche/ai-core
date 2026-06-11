@@ -83,8 +83,8 @@ Rien n'est gratuit. Les décisions assumées :
 - **Ne pas sur-délibérer** : on dimensionne à la porte, sinon le harnais devient *son propre*
   sur-engineering (on s'appliquerait à nous-mêmes le défaut qu'on dénonce).
 - **Anti-bloat sur les règles** — deux opérations distinctes : une règle **morte/redondante** est
-  **élaguée** ; deux règles **qui se contredisent** ne sont pas supprimées mais **pondérées** (poids
-  hiérarchique × contexte — cf. [`architecture-principles.md`](conventions/meta/architecture-principles.md) §9,
+  **élaguée** ; deux règles **qui se contredisent** ne sont pas supprimées mais **pondérées** (ordre
+  hiérarchique modulé par le contexte — cf. [`architecture-principles.md`](conventions/meta/architecture-principles.md) §9,
   d'après B. Krajka). La constitution ne doit pas devenir son propre bazar.
 - **Adapters générés *committés*** (avec en-tête `GÉNÉRÉ`) plutôt que gitignorés → un clone frais marche
   tout de suite. (L'inverse est plus « pur » mais exige le sync avant usage.)

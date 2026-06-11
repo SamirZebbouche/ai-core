@@ -94,12 +94,11 @@ Du plus **fondamental** (lourd) au plus **aspirationnel** (léger). Méta-règle
 
 ### La modulation contextuelle *(notre étage en plus)*
 
-Le poids **n'est pas global** :
+⚠️ **Pas de poids numériques** — ce serait un faux formalisme (× *quoi* ?). La pyramide est un **ordre
+qualitatif** ; le contexte le **ré-ordonne localement** :
 
-> **poids(principe, contexte) = poids_pyramide(principe) × modulation(contexte)**
-
-- `billing` : l'Event-Sourcing est **re-pondéré lourd** (il est *gagné* — l'historique est la valeur) → il bat KISS.
-- `catalog` : l'ES reste **léger** → KISS le bat.
+- `billing` : l'Event-Sourcing **remonte au-dessus de KISS** (il est *gagné* — l'historique est la valeur).
+- `catalog` : l'ES **reste tout en bas** → KISS le domine.
 
 ### La procédure du réfuteur
 
