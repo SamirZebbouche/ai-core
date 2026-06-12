@@ -71,4 +71,7 @@
 - [ ] **Consolider les *stacks*** : étendre `--consolidate` aux **conventions de stack/context natives**
   (`.github/instructions/*.instructions.md`) → source `.ai/contexts/`. C'est aussi le canal pour
   *remonter la stack .NET riche* de cvGenerator. Aujourd'hui `--consolidate` ne prend que les commandes.
+- [ ] **Dogfooding** : ai-core **n'utilise pas ai-core** 😅 — pas de `CLAUDE.md` généré à sa racine. Lui
+  donner sa propre config (`.ai/contexts/` si besoin + sync) pour que bosser *sur* ai-core applique sa
+  méthode/conventions. *(Le « voyage » de ce projet mériterait que l'outil se mange lui-même.)*
 - [x] ~~`/deliberate` = *skill de base* (method.md), pas une commande~~ — **fait**.
