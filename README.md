@@ -99,16 +99,17 @@ Rien n'est gratuit. Les décisions assumées :
 **La taxonomie des règles** — chaque règle a *une* maison :
 
 ```
-conventions/
+conventions/             ← le CŒUR (embarqué, ratifié)
   method.md   ← le protocole de délibération (comment on bosse)
   global.md   ← constitution : TDD, branches, langue — PARTOUT
-  stacks/     ← scoped (applyTo) : dotnet · react · testing…
+  stacks/     ← scoped (applyTo) : langage (typescript) · framework (react, extends typescript)…
   meta/       ← principes d'archi (le POURQUOI) → architecture-principles.md
-  contexts/   ← 🆕 règles LOCALES par bounded context — PROJECT-LOCAL
 ```
 
-> Le calque **`contexts/`** est la maison qui manquait : c'est là qu'on écrit *« ES dans `billing`, CRUD
-> assumé dans `catalog` — pas de VO dans ses ViewModels »*. Le sur-engineering vient de son **absence**.
+> Les **`contexts/`** (règles par bounded context) sont **PROJECT-LOCAL** — ils vivent dans le `.ai/contexts/`
+> du projet (**pas** dans le cœur) et **pointent** leur **ADR** (`docs/adr/`) pour le *pourquoi*. C'est là qu'on
+> écrit *« ES dans `billing`, CRUD assumé dans `catalog` — pas de VO dans ses ViewModels »*. Le sur-engineering
+> vient de leur **absence**.
 
 **Dans un projet de dev :**
 
@@ -137,7 +138,7 @@ projet) est préservée. **Pas-à-pas → [HOWTO.md](HOWTO.md).**
 **La « finesse » — trois axes, additifs (sans config → tout) :**
 - **Modèles** (`models` / `--models anthropic,copilot`) : ne génère que les adapters des assistants utilisés —
   un shop Claude-only n'a ni `GEMINI.md` ni `.github/` qui polluent (alias `claude`=`anthropic`).
-- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas React. **Défaut sain : auto-détectées (`.csproj`→dotnet, dep react→react…), jamais « toutes ».**
+- **Stacks** (`stacks` / `--stacks dotnet,react`) : un projet .NET ne traîne pas React. Tu listes le **framework** (`react`) → son **langage** (`typescript`) vient via `extends` ; `applyTo` scope chacun. **Défaut sain : auto-détectées, jamais « toutes ».**
 - **Commandes** (`.ai/commands/<cmd>/`) : multi-techno, **assemblées additivement** par stack (ex. `/check` = back .NET + front React).
 
 Découvrir/configurer : `npx ai-core-sync --list` (catalogue) · `--config` (bloc package.json) · `--help`.
