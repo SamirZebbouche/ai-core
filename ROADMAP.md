@@ -59,7 +59,13 @@
 - **H1 (bientôt)** : packs = dossiers + frontmatter dans le cœur, sélection par config. Ajouter une stack/un pack = **des `.md`, zéro JS**.
 - **H2 (plus tard)** : packs = **paquets npm tiers** (`@toi/ai-core-pack-git`) découverts par ai-core = modèle **plugin**. Réalise la vision « entreprise B reprend le cœur craft de A ». YAGNI tant qu'il n'y a qu'un cœur — mais le seam H1 le rend trivial.
 
-**Décidé cette session (ratifié)** : ✅ **pack** · ✅ **pas de fallback JS** (détection = donnée, une source) · ✅ **détection B-épurée** (stack = fichier) · ✅ **complétion guidée** > param statique · ✅ **lexique dans `doc/`** (hors cœur).
+**Références : cascade `@import › lien relatif › inline`** *(répond à la question parkée : oui, on matérialise dans `.ai/`)*
+- Le sync **matérialise le cœur utile dans `.ai/`** (chemin stable, committé) ; `node_modules` = **source**, jamais cible. Adapters = **pointeurs minces** quand c'est possible.
+- Par référence, le **meilleur mécanisme dispo** : ① `@import` (Claude/CLAUDE.md, **pas** les commandes) › ② lien relatif / méta-ordre (runtime) › ③ inline (filet garanti). *Diagramme : [`doc/lexique.md §F`](doc/lexique.md).*
+- Sépare dans `.ai/` la **zone matérialisée** (regénérable) de la **zone authored** (`contexts/`, `commands/`).
+- *(Implémentation future : ça **inverse** le sync actuel qui inline tout → chantier à part.)*
+
+**Décidé cette session (ratifié)** : ✅ **pack** · ✅ **pas de fallback JS** (détection = donnée, une source) · ✅ **détection B-épurée** (stack = fichier) · ✅ **complétion guidée** > param statique · ✅ **cascade `@import›lien›inline` + matérialisation `.ai/`** · ✅ **lexique dans `doc/`** (hors cœur).
 
 ## 🔜 Court terme
 

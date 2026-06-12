@@ -64,6 +64,26 @@ Raison d'être : on se marchait sur les pieds (« cœur » voulait dire trois ch
 
 > **Règle inline ↔ méta-ordre** : **inline** le *stable + toujours-requis + à garantir* (`method/global/stacks`) ; **méta-ordre** pour le *volatil / conditionnel / la composition project-local*. Jamais de méta-ordre vers le cœur en `node_modules`.
 
+### Cascade de résolution d'une référence — « on utilise ce qu'on a où on peut »
+
+Le sync **matérialise** le cœur utile dans **`.ai/`** (chemin project-local **stable**, committé) ; `node_modules`
+reste la **source**, jamais la cible. Puis, pour chaque référence, il prend le **meilleur mécanisme disponible** :
+
+```mermaid
+flowchart TD
+    A(["Référence à résoudre<br/>cible = .ai/… (matérialisé par le sync)"]) --> B{"@import supporté ?<br/>Claude · dans CLAUDE.md<br/>(PAS dans les commandes)"}
+    B -- oui --> IMP["① @import .ai/…<br/>statique · garanti · 0 copie"]
+    B -- non --> C{"L'outil suit un lien relatif<br/>au runtime ?<br/>(chemin .ai/ stable)"}
+    C -- oui --> LNK["② Lien relatif / méta-ordre<br/>« lis .ai/… et applique »<br/>runtime · 0 copie · probabiliste"]
+    C -- non --> INL["③ Inline<br/>le sync copie · garanti · dupliqué"]
+```
+
+> **Priorité : ① `@import` › ② lien relatif › ③ inline.** L'axe *garantie* peut **forcer ③** : un contenu
+> qui **doit** être en contexte (méthode, constitution) est **inliné**, même si ① / ② serait possible. **③ = filet universel.**
+>
+> **Zones de `.ai/`** : ce que le sync **matérialise** (regénérable, *ne pas éditer*) doit être **séparé** de
+> ce que **tu écris** (`contexts/`, `commands/`) — sinon le sync écrase ta prose.
+
 ---
 
 > **Règle d'or du lexique** : un terme qui décrit *comment ai-core est fabriqué* → ici (`doc/`).
