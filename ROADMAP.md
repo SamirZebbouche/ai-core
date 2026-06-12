@@ -77,7 +77,7 @@
 
 - [ ] **Stack `react`** (`conventions/stacks/react.md`) — aujourd'hui `react` est sélectionnable mais ne « fait » rien (pas de convention cœur).
 - [ ] **Remonter la stack .NET riche** de cvGenerator (procédure rich-vs-anemic, DI) dans `stacks/dotnet.md`.
-- [ ] **Bibliothèque de skills *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en skills cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`). **~~⚠️ Gaté par la paramétrisation~~ → débloqué par la *complétion guidée*** (cf. 🧭 Modèle stabilisé) : le fragment découvre/confirme/fige les chemins au 1ᵉʳ run. *(Les commandes vraiment bespoke restent project-local opaques.)*
+- [ ] **Bibliothèque de commandes *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en commandes cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`). **~~⚠️ Gaté par la paramétrisation~~ → débloqué par la *complétion guidée*** (cf. 🧭 Modèle stabilisé) : le fragment découvre/confirme/fige les chemins au 1ᵉʳ run. *(Les commandes vraiment bespoke restent project-local opaques.)*
 
 **Bonnes pratiques captées sur cvGenerator** *(mémoire Claude perso → à **ratifier** au cœur ; c'est la boucle `method.md` §6 en vrai : friction → codifier → ratifier ; futur `/codify-rule`)* :
 - [ ] **Lots relisibles** → `method.md` : découper une tâche large en **lots cohérents relisibles** (1 lot = 1 commit TDD), **pause-review** entre lots. *(Prolonge la délibération + la gate humaine.)*
@@ -89,7 +89,7 @@
 
 ## 💡 Gros morceaux (plus tard)
 
-- [ ] **Paramétrisation des skills** → **réorientée en *complétion guidée*** (cf. 🧭 Modèle stabilisé) : plutôt qu'un schéma de params statique dans `package.json`, le fragment fait **découvrir + confirmer + figer** le concret (chemins) au 1ᵉʳ run. *(Reste à spécifier le format figé en project-local.)*
+- [ ] **Paramétrisation des commandes** → **réorientée en *complétion guidée*** (cf. 🧭 Modèle stabilisé) : plutôt qu'un schéma de params statique dans `package.json`, le fragment fait **découvrir + confirmer + figer** le concret (chemins) au 1ᵉʳ run. *(Reste à spécifier le format figé en project-local.)*
 - [ ] **`--config` préserve le formatage** de `package.json` (insert chirurgical au lieu de `JSON.stringify` qui reflow les tableaux).
 - [ ] **npm publish** au deliver (si un registry est voulu ; aujourd'hui : GitHub Release seule).
 
@@ -98,13 +98,13 @@
 - **Duplication des commandes par modèle** : aucun outil ne lit-à-travers une référence **statique (`@import`, Claude seul)** → **recopies forcées** d'UNE source (sans drift). Symlinks non viables (Windows/git/assemblage multi-fichiers). **Nuance (12/06)** : un **méta-ordre runtime** (« lis tel fichier et exécute-le ») contourne ça sur **tous** les outils, pour le **volatil / conditionnel / la composition project-local** — au prix du **non-déterminisme** + **chemin valide au runtime** (donc **pas** vers le cœur en `node_modules`). → recopies forcées **seulement** quand la **garantie d'inline** est requise (stable, toujours-requis). Cf. `doc/lexique.md` §F.
 - **Valeur de `.ai/commands/` (et de `--consolidate`) conditionnelle** : utile en **multi-LLM** (une source → N copies sans drift) **ou** pour l'**additif** (fragments = dossier obligatoire). En **mono-LLM + commande simple** → indirection pure ; autant garder `.claude/commands/` à la main. ai-core ne force pas. *(Le « réemploi » est à la génération, pas à la lecture.)*
 - **Project-local = OPAQUE** : ai-core **n'interfère JAMAIS avec le contenu** d'une commande projet. `--consolidate` la **déplace + redistribue verbatim** (pas de parsing, pas de décomposition, on se moque du contenu).
-- **Fragments `<stack>.md` (additif) = skills du CŒUR uniquement** : un skill **généraliste** (`commands/`) s'assemble depuis des fragments stack-spécifiques et **s'adapte aux stacks détectées** (ex. un `/check` *cœur* = `dotnet.md` + `react.md`). → Un `/check` fragmenté serait un **skill cœur** (futur, cf. paramétrisation « projet en entrée »), **jamais** du project-local.
+- **Fragments `<stack>.md` (additif) = commandes du CŒUR uniquement** : une commande **généraliste** (`commands/`) s'assemble depuis des fragments stack-spécifiques et **s'adapte aux stacks détectées** (ex. un `/check` *cœur* = `dotnet.md` + `react.md`). → Un `/check` fragmenté serait une **commande cœur** (futur, cf. complétion guidée), **jamais** du project-local.
 - **Pas d'oracle de design** : la méthode (délibération) est *injectée*, pas *garantie* — seul l'humain rate les décisions. L'oracle (tests/build) ne couvre que l'implémentation.
 - **Pointeur non uniforme** : la structure diffère selon le LLM (Claude tout en un / Copilot scopé) → un renvoi valide chez l'un est mort chez l'autre. Réponse : **auto-suffisance** (voir 🔜).
 
 ## 🎯 Adoption cvGenerator (le terrain réel)
 
-- [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` → commandes **opaques** (project-local, **zéro ingérence** : move + redistribue verbatim). *(Un `/check` fragmenté = futur skill cœur, pas ici.)*
+- [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` → commandes **opaques** (project-local, **zéro ingérence** : move + redistribue verbatim). *(Un `/check` fragmenté = future commande cœur, pas ici.)*
 - [ ] Context-pointeurs : `.ai/contexts/lexique.md` (→ `docs/LEXIQUE.md`), `.ai/contexts/adr.md` (→ `docs/adr/`).
 - [ ] Règles projet (couplage back/front, design-system, testing) → `.ai/contexts/`.
 
