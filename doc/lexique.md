@@ -32,9 +32,9 @@ Raison d'être : on se marchait sur les pieds (« cœur » voulait dire trois ch
 | Terme | Définition |
 |---|---|
 | **Socle** *(agnostique)* | `method + global + meta` : les règles **sans langage**, valables partout. *(= « ce qui est embarqué sans langage spécifique ».)* |
-| **Stack** *(cadre, framework embarqué)* | `stacks/<techno>.md` : règles **scopées techno** (`applyTo`). Jusqu'à 3 facettes : *détection · convention · fragments de commande*. |
+| **Stack** *(langage ou framework)* | `stacks/<techno>.md` : règles **scopées techno** (`applyTo`). A un **`kind`** — *langage* (`typescript`, `csharp`…) **ou** *framework* (`react`, `angular`…) — et **un framework `extends` un langage** (le sélectionner tire le langage ; `applyTo` scope chacun). Facettes : *détection (`detect:`) · convention · fragments de commande*. |
 | **Aspect** | Préoccupation **transverse** (testing, security, a11y). **N'est pas une stack.** Reste dans socle/stack tant qu'une friction ne l'émancipe pas. |
-| **Context** | Règles d'un **bounded context** précis. **Project-local** (`.ai/contexts/`). |
+| **Context** | Règles d'un **bounded context** précis. **Project-local** (`.ai/contexts/`). Ses règles **architecturales** sont **adossées à un ADR** (qu'il **pointe**, pas recopié). |
 
 ## D. Les commandes
 
@@ -55,6 +55,7 @@ Raison d'être : on se marchait sur les pieds (« cœur » voulait dire trois ch
 |---|---|
 | **Skill de base** | Méthode **toujours active** (la délibération, `conventions/method.md`). **Pas** une commande — sinon elle deviendrait *opt-in*. |
 | **Ratifier** | L'IA **propose** une règle (method §6) → l'humain **valide par PR** sur ce repo → bump de version. |
+| **ADR** *(Architecture Decision Record)* | La **décision gated** : le *pourquoi* + les **branches tuées** (= la sortie de `method.md §5`). **Épine dorsale** des règles architecturales d'un **context**, qui le **pointe**. Boucle : *délibération → ADR → règle de context → réfuteur (qui cite l'ADR) → friction §6 → nouvel ADR*. **Tout context n'a pas besoin d'ADR** — seulement les règles **architecturales / portes à sens unique**. |
 | **Consolidate** | `--consolidate` : rassemble les commandes natives éparpillées (`.claude/commands`, `.github/prompts`) en **une** source neutre `.ai/commands/`. |
 | **Orphelin** | Adapter signé `ai-core` mais **plus généré** ce run → le sync le **signale**, ne le **supprime jamais**. |
 

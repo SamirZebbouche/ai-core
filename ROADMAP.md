@@ -53,6 +53,7 @@
 
 **Stacks à embarquer : le moins possible, exprès (YAGNI)**
 - Cœur public = **dotnet** (✓) **+ react/typescript** (dus). **Pas** de java/go/rust spéculatifs (= « pattern appliqué uniformément » que le réfuteur doit tuer).
+- **Hiérarchie langage/framework** : une stack a un `kind` (*langage* / *framework*) ; un **framework `extends` un langage** (`react extends typescript`). Tu listes le **framework** → le **langage** vient **transitivement**, `applyTo` scope chacun. **Config inchangée** (`stacks: ["react"]`). *Transparence : `--list`/`--conventions` logge `react → +typescript`.* (dotnet pourra se split pareil : `csharp` + `aspnet` — YAGNI.)
 - **Aspect** (testing, security, a11y) **≠ stack** (techno) : reste dans socle/stack tant qu'une friction ne l'émancipe pas.
 
 **Extensibilité : deux horizons**
@@ -66,6 +67,11 @@
 - **Mono-LLM → `.ai/` disparaît** : le hub neutre ne vaut qu'en **multi-LLM** (1 source → N adapters). Un seul LLM → matérialiser/écrire **directement dans son dossier** (`.claude/` + `CLAUDE.md`), zéro indirection `.ai/`. *(Exception : commande **additive** = `.ai/commands/` reste l'atelier d'assemblage. Déjà en 🔒 Limites.)*
 - *(Implémentation future : ça **inverse** le sync actuel qui inline tout → chantier à part.)*
 
+**Contexts ⟂ ADR (la boucle fermée)**
+- Un **context** = les **règles** d'un bounded context ; ses règles **architecturales** sont **adossées à un ADR** (qu'il pointe). **ADR** = le *pourquoi* (décision gated + branches tuées = sortie `method.md §5`) ; **context** = le *quoi* (la règle que le réfuteur applique, en citant l'ADR).
+- Boucle : **délibération → ADR → règle de context → réfuteur → (friction §6) → nouvel ADR.** *(Pas tout context n'a besoin d'un ADR — seulement les règles architecturales / portes à sens unique.)*
+- → **élève l'ADR** dans `taxonomy.md` : d'« une référence à pointer » à **épine dorsale des contexts**.
+
 **Décidé cette session (ratifié)** : ✅ **pack** · ✅ **pas de fallback JS** (détection = donnée, une source) · ✅ **détection B-épurée** (stack = fichier) · ✅ **complétion guidée** > param statique · ✅ **cascade `@import›lien›inline` + matérialisation `.ai/`** · ✅ **lexique dans `doc/`** (hors cœur).
 
 ## 🔜 Court terme
@@ -73,10 +79,11 @@
 - [ ] **Tag `v0.2.2`** (fix liens morts + `--import-commands`).
 - [ ] **Resserrer l'auto-suffisance** : *stacks / contexts = **zéro renvoi*** (ils partent SEULS chez Copilot, scopés) ; self-contain `global.md`. La taxonomy est encore molle là-dessus.
 - [ ] **`--conventions` trop étroit** : il rate `SETUP-AI`, `USER-JOURNEYS`, `ROADMAP`… → lister tous les `docs/*.md` ? rendre la regex configurable ?
+- [ ] **Doc-debt à trancher** (flags d'audit) : **#5** README détection (`dep react→react`) → maj quand B-épurée atterrit · **#8** `templates/` = plomberie **morte** aujourd'hui (le sync inline via `assemble.mjs`) — gardé pour la **cascade future** ou à retirer ? · **#9** versions : roadmap dit `v0.2.2`, `package.json` = `v0.1.0`.
 
 ## 🟠 Cœur — contenu (gouverné par PR)
 
-- [ ] **Stack `react`** (`conventions/stacks/react.md`) — aujourd'hui `react` est sélectionnable mais ne « fait » rien (pas de convention cœur).
+- [ ] **Stack react/typescript** — **split** : `stacks/typescript.md` (langage) **+** `stacks/react.md` (framework, `extends: typescript`). Source = cvGenerator `react-typescript.instructions.md`. Auj. `react` est sélectionnable mais ne « fait » rien. → branche `feat/stack-react-typescript`.
 - [ ] **Remonter la stack .NET riche** de cvGenerator (procédure rich-vs-anemic, DI) dans `stacks/dotnet.md`.
 - [ ] **Bibliothèque de commandes *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en commandes cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`). **~~⚠️ Gaté par la paramétrisation~~ → débloqué par la *complétion guidée*** (cf. 🧭 Modèle stabilisé) : le fragment découvre/confirme/fige les chemins au 1ᵉʳ run. *(Les commandes vraiment bespoke restent project-local opaques.)*
 
@@ -107,7 +114,8 @@
 
 - [ ] `git checkout main -- .claude/commands` → `npx ai-core-sync --consolidate` → commandes **opaques** (project-local, **zéro ingérence** : move + redistribue verbatim). *(Un `/check` fragmenté = future commande cœur, pas ici.)*
 - [ ] Context-pointeurs : `.ai/contexts/lexique.md` (→ `docs/LEXIQUE.md`), `.ai/contexts/adr.md` (→ `docs/adr/`).
-- [ ] Règles projet (couplage back/front, design-system, testing) → `.ai/contexts/`.
+- [ ] Règles projet (couplage back/front, testing) → `.ai/contexts/`.
+- [ ] **Design-system** → `.ai/contexts/design-system.md` = les **règles** (les 7 de cvGenerator) **+ un pointeur** vers `tailwind.config.js` + `index.css`. **Le catalogue** (tokens, classes CSS) **ne s'inline pas** (volatil = duplique le code → drift). *(Cas d'école « inline le stable, pointe le volatil » ; règle #3 du fichier = `method §6`.)*
 
 ## ➕ Tes ajouts (cités au fil)
 
