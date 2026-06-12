@@ -63,6 +63,7 @@
 - Le sync **matérialise le cœur utile dans `.ai/`** (chemin stable, committé) ; `node_modules` = **source**, jamais cible. Adapters = **pointeurs minces** quand c'est possible.
 - Par référence, le **meilleur mécanisme dispo** : ① `@import` (Claude/CLAUDE.md, **pas** les commandes) › ② lien relatif / méta-ordre (runtime) › ③ inline (filet garanti). *Diagramme : [`doc/lexique.md §F`](doc/lexique.md).*
 - Sépare dans `.ai/` la **zone matérialisée** (regénérable) de la **zone authored** (`contexts/`, `commands/`).
+- **Mono-LLM → `.ai/` disparaît** : le hub neutre ne vaut qu'en **multi-LLM** (1 source → N adapters). Un seul LLM → matérialiser/écrire **directement dans son dossier** (`.claude/` + `CLAUDE.md`), zéro indirection `.ai/`. *(Exception : commande **additive** = `.ai/commands/` reste l'atelier d'assemblage. Déjà en 🔒 Limites.)*
 - *(Implémentation future : ça **inverse** le sync actuel qui inline tout → chantier à part.)*
 
 **Décidé cette session (ratifié)** : ✅ **pack** · ✅ **pas de fallback JS** (détection = donnée, une source) · ✅ **détection B-épurée** (stack = fichier) · ✅ **complétion guidée** > param statique · ✅ **cascade `@import›lien›inline` + matérialisation `.ai/`** · ✅ **lexique dans `doc/`** (hors cœur).

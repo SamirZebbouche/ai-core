@@ -89,6 +89,11 @@ flowchart TD
 >
 > **Zones de `.ai/`** : ce que le sync **matérialise** (regénérable, *ne pas éditer*) doit être **séparé** de
 > ce que **tu écris** (`contexts/`, `commands/`) — sinon le sync écrase ta prose.
+>
+> **Mono-LLM → `.ai/` disparaît.** Le hub neutre `.ai/` ne se justifie que par le **multi-LLM** (1 source → N
+> adapters, sans drift). Avec **un seul** LLM, c'est de l'indirection pure → on matérialise/écrit **directement
+> dans son dossier natif** (Claude-only → `.claude/` + `CLAUDE.md`). *Exception : une commande **additive**
+> (fragments) garde `.ai/commands/` comme **atelier d'assemblage** (source ≠ sortie), même mono-LLM.*
 
 ---
 
