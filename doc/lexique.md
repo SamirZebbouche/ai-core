@@ -54,6 +54,16 @@ Raison d'être : on se marchait sur les pieds (« cœur » voulait dire trois ch
 | **Consolidate** | `--consolidate` : rassemble les commandes natives éparpillées (`.claude/commands`, `.github/prompts`) en **une** source neutre `.ai/commands/`. |
 | **Orphelin** | Adapter signé `ai-core` mais **plus généré** ce run → le sync le **signale**, ne le **supprime jamais**. |
 
+## F. Références & composition (statique vs runtime)
+
+| Terme | Définition |
+|---|---|
+| **`@import`** *(statique)* | Directive résolue par l'**outil** au chargement — **Claude seul**. L'adapter *référence* sans copier ; les autres outils → le sync **inline** à la place. |
+| **Context-pointeur** *(passif)* | Un context court qui **lie** une source de vérité (doc, ADR…) ; le LLM la lit **à la demande**. Pour le **volatil** (taxonomy : « inline le stable, pointe le volatil »). |
+| **Méta-ordre** *(actif, runtime)* | Instruction en langage naturel : « **lis tel fichier ET exécute-le** ». Résolue **au runtime** par le LLM agentique → **marche sur TOUS les outils** (pas que Claude), car ce n'est pas un `@import`. Permet à une **commande d'en composer une autre**. ⚠️ **probabiliste** (pas garanti en contexte) + **chemin valide au runtime requis** (fragile vers le cœur en `node_modules` → réserve-le au **project-local**). *(La complétion guidée **est** un méta-ordre.)* |
+
+> **Règle inline ↔ méta-ordre** : **inline** le *stable + toujours-requis + à garantir* (`method/global/stacks`) ; **méta-ordre** pour le *volatil / conditionnel / la composition project-local*. Jamais de méta-ordre vers le cœur en `node_modules`.
+
 ---
 
 > **Règle d'or du lexique** : un terme qui décrit *comment ai-core est fabriqué* → ici (`doc/`).
