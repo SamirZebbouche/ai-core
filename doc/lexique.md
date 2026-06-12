@@ -45,6 +45,10 @@ Raison d'être : on se marchait sur les pieds (« cœur » voulait dire trois ch
 | **Fragment** | Le `<stack>.md` d'une commande, **ajouté quand la stack est active** — c'est lui qui porte le **concret techno**. |
 | **Complétion guidée** *(1ʳᵉ exécution)* | Au lieu d'un param statique : le fragment fait **découvrir le concret au LLM** (chemins…), **demande confirmation au user**, puis **fige** le résultat en project-local. *Agnostique à la livraison → concret au 1ᵉʳ run → déterministe ensuite.* |
 
+> **Skill ≠ Commande** *(l'axe qui tranche)* : un **skill** est un comportement **TOUJOURS appliqué** (jamais
+> invoqué — ex. la délibération, cf. *Skill de base* §E) ; une **commande** est **DÉCLENCHÉE** (tu l'invoques :
+> `/check`). **Un truc invocable n'est jamais un « skill ».** *(« skill craft » était un abus de langage → c'est une commande.)*
+
 ## E. Cycle de vie d'une règle / d'une commande
 
 | Terme | Définition |
@@ -66,7 +70,9 @@ Raison d'être : on se marchait sur les pieds (« cœur » voulait dire trois ch
 
 ### Cascade de résolution d'une référence — « on utilise ce qu'on a où on peut »
 
-Le sync **matérialise** le cœur utile dans **`.ai/`** (chemin project-local **stable**, committé) ; `node_modules`
+> ⚠️ **Modèle CIBLE — pas encore implémenté.** Aujourd'hui le sync **inline** tout (cf. HOWTO). Ci-dessous la direction visée.
+
+Le sync **matérialisera** le cœur utile dans **`.ai/`** (chemin project-local **stable**, committé) ; `node_modules`
 reste la **source**, jamais la cible. Puis, pour chaque référence, il prend le **meilleur mécanisme disponible** :
 
 ```mermaid

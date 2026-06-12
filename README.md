@@ -155,9 +155,9 @@ Découvrir/configurer : `npx ai-core-sync --list` (catalogue) · `--config` (blo
 **Aucun build** — JS pur (ESM) + Markdown, **zéro dépendance**. Juste Node (≥ 18).
 
 ```bash
-npm test        # lance la suite (runner intégré de Node — tests/sync.test.mjs)
+npm test        # lance la suite (runner intégré de Node — tests/lib.test.mjs + tests/sync.test.mjs)
 npm run sync    # démo : génère dans .sync-out/ (gitignoré). Chez le consommateur, `npx ai-core-sync` génère au root.
 ```
 
 Contribuer une règle = **PR sur ce repo** (= la ratification : l'IA propose, l'humain ratifie, bump de version).
-Les `tests/` ne sont pas publiés dans le package (le champ `files` ne ship que `conventions/` `templates/` `tools/`).
+Les `tests/` ne sont pas publiés dans le package (le champ `files` ship `conventions/` `commands/` `templates/` `tools/` + `HOWTO.md`).

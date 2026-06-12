@@ -14,12 +14,12 @@
 | **Cœur** | la source **embarquée & ratifiée** | `conventions/` + `commands/` |
 | **Socle** *(agnostique)* | la part du cœur **sans langage** | `method` / `global` / `meta` |
 | **Pack** | **namespace** de commandes (opt-in ; résout la collision par construction) | `commands/<pack>/` |
-| **Skill de base** | comportement **toujours actif** (la méthode), non invocable | `conventions/method.md` (inliné) |
+| **Skill** *(de base)* | comportement **TOUJOURS appliqué** (jamais invoqué) — ex. la délibération | `conventions/method.md` (inliné) |
 | **Convention** | règle **déclarative** (*quoi* respecter) | `conventions/` (cœur) + `.ai/contexts/` (projet) |
-| **Skill craft** | commande **généraliste invocable**, paramétrée par le projet | `commands/` (**cœur**) |
-| **Fragment** `<stack>.md` | partie **stack-spécifique** d'un skill craft multi-techno (additif) | dans un skill cœur |
+| **Commande** *(cœur)* | action **DÉCLENCHÉE** (invoquée), généraliste, complétée par stack | `commands/` (**cœur**) |
+| **Fragment** `<stack>.md` | partie **stack-spécifique** d'une **commande** multi-techno (additif) | dans une commande cœur |
 | **Commande project-local** | commande **bespoke**, **OPAQUE** (ai-core n'y touche pas) | `.ai/commands/` |
-| **`--consolidate`** | déplace les commandes natives → `.ai/commands/` + redistribue **verbatim** | CLI |
+| **`--consolidate`** | **(auj.)** *copie* les commandes natives → `.ai/commands/` · **(cible)** *déplace* + *redistribue* verbatim | CLI |
 
 ## ✅ Acquis (rappel d'orientation)
 
@@ -79,6 +79,14 @@
 - [ ] **Remonter la stack .NET riche** de cvGenerator (procédure rich-vs-anemic, DI) dans `stacks/dotnet.md`.
 - [ ] **Bibliothèque de skills *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en skills cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`). **~~⚠️ Gaté par la paramétrisation~~ → débloqué par la *complétion guidée*** (cf. 🧭 Modèle stabilisé) : le fragment découvre/confirme/fige les chemins au 1ᵉʳ run. *(Les commandes vraiment bespoke restent project-local opaques.)*
 
+**Bonnes pratiques captées sur cvGenerator** *(mémoire Claude perso → à **ratifier** au cœur ; c'est la boucle `method.md` §6 en vrai : friction → codifier → ratifier ; futur `/codify-rule`)* :
+- [ ] **Lots relisibles** → `method.md` : découper une tâche large en **lots cohérents relisibles** (1 lot = 1 commit TDD), **pause-review** entre lots. *(Prolonge la délibération + la gate humaine.)*
+- [ ] **Rename cross-stack** → enrichit `global.md` §Couplage back/front : renommer une **valeur partagée** (claim, header, champ DTO, code d'erreur) ⇒ **grep des DEUX côtés** (back + front + CLI + tests + docs), sinon rename silencieusement incomplet.
+- [ ] **Messages de commit serrés** → `global.md` (ou pack `git`) : sujet ≤ 72 (Conventional Commits), corps **2-5 lignes max** (le *WHY*, pas le *WHAT*) ; au-delà → description de PR. **1 commit par pause**, pas de split-by-file.
+- [ ] **Bug > refacto** → `meta/architecture-principles.md` : un **bug passe toujours avant** un refacto (sauf si le refacto dérisque le fix). Heuristique de priorité du réfuteur.
+- [ ] **Gate d'action (commit/push)** → `global.md`/`method.md` : ne jamais **committer** ni **pousser** (ni action distante) **à la place de l'humain** sans **GO présent explicite**. *Décrire un plan ≠ autoriser.* (Vécu cette session.)
+- [ ] **1 PR = 1 paquet livrable** → `global.md` : commits TDD **dans** la branche, **pas** de branches stackées. *(La partie « merge `main` = déploiement » reste **project-local** — c'est le CI/CD de cvGenerator, pas une règle cœur.)*
+
 ## 💡 Gros morceaux (plus tard)
 
 - [ ] **Paramétrisation des skills** → **réorientée en *complétion guidée*** (cf. 🧭 Modèle stabilisé) : plutôt qu'un schéma de params statique dans `package.json`, le fragment fait **découvrir + confirmer + figer** le concret (chemins) au 1ᵉʳ run. *(Reste à spécifier le format figé en project-local.)*
@@ -112,7 +120,6 @@
 - [ ] **Consolider les *stacks*** : étendre `--consolidate` aux **conventions de stack/context natives**
   (`.github/instructions/*.instructions.md`) → source `.ai/contexts/`. C'est aussi le canal pour
   *remonter la stack .NET riche* de cvGenerator. Aujourd'hui `--consolidate` ne prend que les commandes.
-- [ ] **Dogfooding** : ai-core **n'utilise pas ai-core** 😅 — pas de `CLAUDE.md` généré à sa racine. Lui
-  donner sa propre config (`.ai/contexts/` si besoin + sync) pour que bosser *sur* ai-core applique sa
-  méthode/conventions. *(Le « voyage » de ce projet mériterait que l'outil se mange lui-même.)*
+- [x] ~~**Dogfooding** : ai-core n'utilise pas ai-core~~ — **fait (PR #1, mergée)** : `CLAUDE.md` généré à
+  la racine depuis ses propres `conventions/` + job CI `dogfood` (anti-dérive) + `.gitattributes` (LF).
 - [x] ~~`/deliberate` = *skill de base* (method.md), pas une commande~~ — **fait**.
