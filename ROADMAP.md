@@ -6,8 +6,14 @@
 
 ## 📖 Glossaire (vocabulaire verrouillé — pour ne plus s'emmêler)
 
+> 📖 **Source canonique : [`doc/lexique.md`](doc/lexique.md)** (hors cœur, non embarqué). Rappel rapide ci-dessous ; **en cas de conflit, le lexique fait foi.**
+
 | Terme | C'est… | Où |
 |---|---|---|
+| **ai-core** *(l'outil)* | l'**application** (sync + matière embarquée) — **≠ « cœur »** | le paquet npm |
+| **Cœur** | la source **embarquée & ratifiée** | `conventions/` + `commands/` |
+| **Socle** *(agnostique)* | la part du cœur **sans langage** | `method` / `global` / `meta` |
+| **Pack** | **namespace** de commandes (opt-in ; résout la collision par construction) | `commands/<pack>/` |
 | **Skill de base** | comportement **toujours actif** (la méthode), non invocable | `conventions/method.md` (inliné) |
 | **Convention** | règle **déclarative** (*quoi* respecter) | `conventions/` (cœur) + `.ai/contexts/` (projet) |
 | **Skill craft** | commande **généraliste invocable**, paramétrée par le projet | `commands/` (**cœur**) |
@@ -26,6 +32,35 @@
 - **Commandes multi-techno additives** (project-local) ; la **délibération** est un *skill de base* (`method.md`), pas une commande.
 - **CI** multi-Node + **couverture gatée** (~84 % branches) + **deliver** sur tag. 38 tests.
 
+## 🧭 Modèle stabilisé — commandes · stacks · extensibilité *(session 12/06)*
+
+> Vocabulaire canonique : **[`doc/lexique.md`](doc/lexique.md)** (hors cœur, **non embarqué**). Ci-dessous, les décisions.
+
+**Commandes : packs = namespaces (la collision, résolue *par construction*)**
+- Un **pack** = namespace de commandes par domaine, **opt-in** (`commands`), **agnostique par construction**.
+- **Collision résolue par construction** : `commands/git/commit/` vs `commands/craft/commit/` → `/git:commit` vs `/craft:commit` (chemins de sortie distincts). Claude/Gemini = sous-dossiers natifs ; **Copilot dégrade** (préfixe plat `git-commit`). *Vraie* collision = **même pack + même nom** → le sync **échoue**. Local vs cœur = override volontaire (le local gagne, warn — déjà le cas).
+- Packs candidats : **git** (create-pr, clean-orphan-branches) · **craft** (codify-rule = method §6, audit-conventions = §9, ratify) · **analyse** (audit, investigate, hotspots) · **tests** · **develop** · **infra**. **git + craft** = path-agnostiques → cœur **immédiat**.
+
+**Chemins : complétion guidée (1ʳᵉ exéc.) — ⚡ remplace la « paramétrisation statique »**
+- Plus de schéma de params en dur. Le **fragment** `<stack>.md` embarque une **méta-instruction** : au 1ᵉʳ run, l'IA **découvre** le concret (chemins de tests…), **demande confirmation**, puis **fige** en project-local. *Agnostique livré → concret au 1ᵉʳ run → déterministe ensuite.*
+- Effet : **débloque** tests/develop/infra (plus « gatés par la paramétrisation ») et **dogfoode la méthode** (propose → gate humain → codifie).
+
+**Stacks : détection *file-driven*, zéro table JS, zéro catalogue (B épurée)**
+- **Une stack = un fichier `conventions/stacks/<x>.md`.** Sa détection vit dans son **frontmatter** : `detect: { files:[…] }` ou `detect: { dependency: … }`. Le moteur lit `stacks/*.md` → détection = **donnée**, plus du code (pas de table JS, **pas de fallback**, pas de catalogue).
+- **Pas de fichier → pas d'avis → rien à détecter.** L'état « détecté mais non colorié » **n'existe pas** (artefact de l'ancien JS hardcodé). Projet vide → rien. ✅
+- Stack manquante → **invitation à contribuer dans le README** (statique) : « PR sur `conventions/stacks/<x>.md` ». **Pas** de moteur runtime pour ça.
+- **Conséquence assumée** : les détections JS java/go/python/rust **partent** ; un test change (`requirements.txt → python`). C'est une **simplification**.
+
+**Stacks à embarquer : le moins possible, exprès (YAGNI)**
+- Cœur public = **dotnet** (✓) **+ react/typescript** (dus). **Pas** de java/go/rust spéculatifs (= « pattern appliqué uniformément » que le réfuteur doit tuer).
+- **Aspect** (testing, security, a11y) **≠ stack** (techno) : reste dans socle/stack tant qu'une friction ne l'émancipe pas.
+
+**Extensibilité : deux horizons**
+- **H1 (bientôt)** : packs = dossiers + frontmatter dans le cœur, sélection par config. Ajouter une stack/un pack = **des `.md`, zéro JS**.
+- **H2 (plus tard)** : packs = **paquets npm tiers** (`@toi/ai-core-pack-git`) découverts par ai-core = modèle **plugin**. Réalise la vision « entreprise B reprend le cœur craft de A ». YAGNI tant qu'il n'y a qu'un cœur — mais le seam H1 le rend trivial.
+
+**Décidé cette session (ratifié)** : ✅ **pack** · ✅ **pas de fallback JS** (détection = donnée, une source) · ✅ **détection B-épurée** (stack = fichier) · ✅ **complétion guidée** > param statique · ✅ **lexique dans `doc/`** (hors cœur).
+
 ## 🔜 Court terme
 
 - [ ] **Tag `v0.2.2`** (fix liens morts + `--import-commands`).
@@ -36,11 +71,11 @@
 
 - [ ] **Stack `react`** (`conventions/stacks/react.md`) — aujourd'hui `react` est sélectionnable mais ne « fait » rien (pas de convention cœur).
 - [ ] **Remonter la stack .NET riche** de cvGenerator (procédure rich-vs-anemic, DI) dans `stacks/dotnet.md`.
-- [ ] **Bibliothèque de skills *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en skills cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`) + fournit ses **paramètres**. **⚠️ Gaté par la paramétrisation** « projet en entrée » (cf. 💡) — sinon impossible de sortir les chemins en dur. *(Les commandes vraiment bespoke restent project-local opaques.)*
+- [ ] **Bibliothèque de skills *craft* au cœur** : aujourd'hui aucune commande cœur. **Candidats** = les commandes craft de cvGenerator (`/check`, `/watch`, `/create-pr`, `/clean-orphan-branches`) — **pas** project-spécifiques, seuls quelques **chemins** le sont. → les **migrer en skills cœur** (fragments par stack pour `check`/`watch`). Le projet les **sélectionne** (`commands`). **~~⚠️ Gaté par la paramétrisation~~ → débloqué par la *complétion guidée*** (cf. 🧭 Modèle stabilisé) : le fragment découvre/confirme/fige les chemins au 1ᵉʳ run. *(Les commandes vraiment bespoke restent project-local opaques.)*
 
 ## 💡 Gros morceaux (plus tard)
 
-- [ ] **Paramétrisation des skills** : commande généraliste + « **projet en entrée** » rempli depuis `package.json`, au lieu de chemins en dur (ex. `/watch` générique vs `dotnet watch src/cv-generator-back`). C'est le vrai rôle visé de l'option `commands`.
+- [ ] **Paramétrisation des skills** → **réorientée en *complétion guidée*** (cf. 🧭 Modèle stabilisé) : plutôt qu'un schéma de params statique dans `package.json`, le fragment fait **découvrir + confirmer + figer** le concret (chemins) au 1ᵉʳ run. *(Reste à spécifier le format figé en project-local.)*
 - [ ] **`--config` préserve le formatage** de `package.json` (insert chirurgical au lieu de `JSON.stringify` qui reflow les tableaux).
 - [ ] **npm publish** au deliver (si un registry est voulu ; aujourd'hui : GitHub Release seule).
 
