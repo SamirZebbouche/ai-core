@@ -42,8 +42,29 @@ jobs:
           test -f .ci-out/CLAUDE.md
           test -f .ci-out/GEMINI.md
           test -f .ci-out/.github/copilot-instructions.md
-          test -f .ci-out/.claude/commands/deliberate.md
-          test -f .ci-out/.gemini/commands/deliberate.toml
+          # NB : pas de commande cœur à asserter — la délibération est un *skill de base*
+          # (conventions/method.md), pas un /command. Les commandes sont project-local (.ai/commands/).
+
+  dogfood:
+    name: Dogfood — ai-core mange sa propre nourriture
+    # Le CLAUDE.md committé à la racine DOIT être == sync(conventions/). Sinon le cœur a changé
+    # sans re-sync : la config IA d'ai-core dériverait de sa propre constitution. On l'interdit.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '20'
+      - name: Re-génère le CLAUDE.md du repo depuis ses propres conventions/
+        run: node tools/sync-ai.mjs --models anthropic
+      - name: Aucune dérive — le CLAUDE.md committé est-il à jour ?
+        run: |
+          if ! git diff --quiet -- CLAUDE.md; then
+            echo "::error::CLAUDE.md a dérivé de conventions/ — relance 'node tools/sync-ai.mjs' et commite le résultat."
+            git --no-pager diff -- CLAUDE.md
+            exit 1
+          fi
+          echo "Dogfood OK — CLAUDE.md est en phase avec conventions/."
 
   package:
     name: Package — ship que l'utile

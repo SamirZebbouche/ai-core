@@ -1,0 +1,3 @@
+# Le CLAUDE.md de la racine est GÉNÉRÉ (LF) et byte-comparé en CI (job « dogfood »).
+# On fige ses fins de ligne pour que la comparaison soit stable quel que soit l'OS du contributeur.
+CLAUDE.md text eol=lf
